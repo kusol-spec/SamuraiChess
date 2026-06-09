@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samurai Chess - มหาสงครามหมากรุกซามูไร</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Font Family: Noto Sans Thai & Kanit -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&family=Noto+Sans+Thai:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Kanit', 'Noto Sans Thai', sans-serif;
+            background-color: #121214;
+            color: #e2e8f0;
+            background-image: radial-gradient(rgba(185, 28, 28, 0.15) 1px, transparent 0), radial-gradient(rgba(185, 28, 28, 0.15) 1px, transparent 0);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1e24;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ef4444;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b91c1c;
+        }
+        /* Chess Board grid */
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            grid-template-rows: repeat(8, minmax(0, 1fr));
+            aspect-ratio: 1 / 1;
+            border: 4px solid #851c1c;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        }
+        .board-square {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .square-light {
+            background-color: #eadeca;
+            color: #2d3748;
+        }
+        .square-dark {
+            background-color: #8c6c53;
+            color: #f7fafc;
+        }
+        .square-selected {
+            box-shadow: inset 0 0 0 4px #eab308 !important;
+            background-color: rgba(234, 179, 8, 0.4) !important;
+        }
+        .square-highlighted::after {
+            content: '';
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            border-radius: 50%;
+            background-color: rgba(16, 185, 129, 0.7);
+            pointer-events: none;
+        }
+        .square-highlighted-capture::after {
+            content: '';
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            border: 4px solid rgba(239, 68, 68, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        /* Piece Styles */
+        .piece-container {
+            width: 85%;
+            height: 85%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+            transition: transform 0.2s ease-out;
+        }
+        .piece-container:hover {
+            transform: scale(1.1);
+        }
+        .piece-icon {
+            font-size: 1.8rem;
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5));
+        }
+        .piece-name {
+            font-size: 0.6rem;
+            font-weight: 800;
+            margin-top: -2px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .red-clan {
+            color: #ef4444;
+            filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.5));
+        }
+        .black-clan {
+            color: #1e293b;
+            filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+        }
+        /* Special animations */
+        @keyframes samurai-slash {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3) rotate(15deg); }
+            100% { transform: scale(1); }
+        }
+        .slashing {
+            animation: samurai-slash 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-zinc-950 border-b border-red-900/50 px-6 py-4 shadow-xl">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-red-700 text-white p-3 rounded-lg shadow-lg shadow-red-700/30">
+                    <i class="fa-solid fa-chess-rook text-2xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-wider text-red-500 flex items-center gap-2">
+                        <span>SAMURAI CHESS</span> 
+                        <span class="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded font-normal">สงครามกองทัพญี่ปุ่น</span>
+                    </h1>
+                    <p class="text-xs text-zinc-400">ควบคุมซามูไร, โชกุน และนินจาของคุณเพื่อพิชิตสมรภูมิ</p>
+                </div>
+            </div>
+            
+            <!-- User Status Header -->
+            <div id="header-user-info" class="hidden flex items-center gap-3 bg-zinc-900 border border-zinc-800 p-2 rounded-lg">
+                <div class="w-10 h-10 bg-red-800 rounded-full flex items-center justify-center font-bold text-white border border-red-500">
+                    <span id="user-initial">U</span>
+                </div>
+                <div>
+                    <p class="text-xs text-zinc-400">เข้าสู่ระบบแล้ว</p>
+                    <p id="user-display-name" class="text-sm font-bold text-zinc-200">ผู้เล่น</p>
+                </div>
+                <button onclick="changeName()" class="text-xs text-red-400 hover:text-red-300 ml-4 underline">แก้ไขชื่อ</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6">
+        
+        <!-- API Setup Box (สำหรับตั้งค่า Google Sheets API Link) -->
+        <div id="api-config-box" class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <i class="fa-solid fa-circle-info text-2xl mt-1 text-yellow-400"></i>
+                <div>
+                    <h3 class="font-bold">เชื่อมต่อ Google Sheets API (ไม่บังคับ)</h3>
+                    <p class="text-xs text-yellow-200/80">กรอก Web App URL ของ Apps Script เพื่อให้ระบบบันทึกคะแนนและแสดงผลตารางคะแนนแบบเรียลไทม์ได้จริง</p>
+                </div>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <input id="api-url-input" type="text" placeholder="https://script.google.com/macros/s/.../exec" class="bg-zinc-950 text-white text-xs border border-yellow-500/40 rounded px-3 py-2 flex-grow sm:w-80 outline-none focus:border-yellow-400">
+                <button onclick="saveApiUrl()" class="bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-xs px-4 py-2 rounded transition whitespace-nowrap">เชื่อมต่อ</button>
+            </div>
+        </div>
+
+        <!-- SCREEN 1: LOGIN Screen -->
+        <div id="screen-login" class="flex-grow flex items-center justify-center py-10">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 via-orange-500 to-red-600"></div>
+                <div class="text-center mb-8">
+                    <i class="fa-solid fa-user-ninja text-5xl text-red-500 mb-4"></i>
+                    <h2 class="text-2xl font-bold text-zinc-100">ประกาศนามนักรบ</h2>
+                    <p class="text-sm text-zinc-400 mt-1">กรุณาระบุชื่อของคุณเพื่อเข้าสู่สนามรบและตารางจัดอันดับ</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">ชื่อนักรบ (Username)</label>
+                        <input id="player-name-input" type="text" maxlength="15" placeholder="กรอกชื่อของคุณ..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 font-bold tracking-wide">
+                    </div>
+                    <button onclick="handleLogin()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition duration-200 shadow-lg shadow-red-700/20">
+                        เข้าสู่สนามรบ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: GAME LOBBY -->
+        <div id="screen-lobby" class="hidden flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Panel: Mode Selection -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Banner -->
+                <div class="bg-gradient-to-r from-red-950 to-zinc-900 border border-red-900/30 rounded-2xl p-6 relative overflow-hidden shadow-lg">
+                    <div class="relative z-10">
+                        <span class="bg-red-700 text-white text-xs px-2.5 py-1 rounded font-bold uppercase tracking-wider">โหมดการเล่น</span>
+                        <h2 class="text-3xl font-extrabold text-zinc-100 mt-3 mb-2">เลือกสมรภูมิสงครามซามูไร</h2>
+                        <p class="text-sm text-zinc-300 max-w-md">ทดสอบฝีมือของคุณกับการดวลดาบของกองทัพนักรบญี่ปุ่น ท้าสู้กับเพื่อนออนไลน์ หรือสู้กับขุนพล AI อันชาญฉลาด</p>
+                    </div>
+                    <div class="absolute right-6 bottom-0 text-red-500/10 text-9xl font-bold pointer-events-none select-none">戦</div>
+                </div>
+
+                <!-- Mode Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- AI Mode Card -->
+                    <div class="bg-zinc-900 border border-zinc-800 hover:border-red-800/60 p-6 rounded-2xl transition duration-300 flex flex-col justify-between shadow-md">
+                        <div>
+                            <div class="w-12 h-12 bg-red-600/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-center text-xl mb-4">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-zinc-100 mb-2">สู้กับ ขุนพล AI</h3>
+                            <p class="text-xs text-zinc-400 leading-relaxed mb-4">ฝึกฝนกลยุทธ์ของคุณกับระบบตอบโต้อัจฉริยะแบบออฟไลน์ เลือกบุกหรือรับตามสไตล์การรบของคุณ</p>
+                        </div>
+                        <button onclick="startAiGame()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl transition">
+                            เริ่มสู้กับ AI
+                        </button>
+                    </div>
+
+                    <!-- Online Mode Card -->
+                    <div class="bg-zinc-900 border border-zinc-800 hover:border-red-800/60 p-6 rounded-2xl transition duration-300 flex flex-col justify-between shadow-md">
+                        <div>
+                            <div class="w-12 h-12 bg-emerald-600/10 border border-emerald-500/20 text-emerald-500 rounded-xl flex items-center justify-center text-xl mb-4">
+                                <i class="fa-solid fa-globe"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-zinc-100 mb-2">สู้กับ นักรบออนไลน์ (P2P Room)</h3>
+                            <p class="text-xs text-zinc-400 leading-relaxed mb-4">ตั้งห้องเล่นกับเพื่อนหรือผู้เล่นอื่นผ่านระบบจำลองห้องล็อบบี้แบบ Real-time ร่วมพิชิตกระดานรบออนไลน์</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="createOnlineRoom()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-emerald-400 border border-emerald-500/20 font-bold py-2.5 rounded-xl text-xs transition">
+                                <i class="fa-solid fa-plus mr-1"></i> ตั้งห้องใหม่
+                            </button>
+                            <button onclick="showJoinRoomModal()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                                <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> ร่วมเล่น
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Open Lobby Rooms (ระบบแสดงห้องว่างออนไลน์) -->
+                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-zinc-200 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
+                            <span>ห้องว่างรอผู้เล่นคนอื่น</span>
+                        </h3>
+                        <button onclick="refreshRooms()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                            <i class="fa-solid fa-arrows-rotate"></i> อัปเดตห้อง
+                        </button>
+                    </div>
+                    
+                    <div id="rooms-list-container" class="space-y-3 max-h-48 overflow-y-auto pr-2">
+                        <!-- รายการห้องจำลอง -->
+                        <div class="text-center py-6 text-zinc-500 text-sm">
+                            <i class="fa-solid fa-spinner animate-spin mb-2 text-red-500 block text-lg"></i>
+                            กำลังค้นหาห้องว่าง...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Leaderboard & Guidelines -->
+            <div class="space-y-6">
+                <!-- Leaderboard (เชื่อมต่อ Google Sheet) -->
+                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-md">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-zinc-800">
+                        <h3 class="font-bold text-zinc-200 flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-yellow-500"></i>
+                            <span>ตารางทำเนียบขุนพล (Leaderboard)</span>
+                        </h3>
+                        <button onclick="loadLeaderboard()" class="text-zinc-500 hover:text-zinc-300">
+                            <i id="sync-icon" class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="leaderboard-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        <!-- รายชื่อผู้เล่นจะถูกโหลดมาใส่ตรงนี้ -->
+                        <div class="text-center text-xs text-zinc-500 py-6">
+                            กำลังโหลดรายชื่อจาก Google Sheets...
+                        </div>
+                    </div>
+                    
+                    <p class="text-[10px] text-zinc-500 text-center mt-4">
+                        *ข้อมูลคะแนนอัปเดตอัตโนมัติเมื่อชนะในแต่ละรอบ (ชนะ +3 คะแนน, เสมอ +1 คะแนน)
+                    </p>
+                </div>
+
+                <!-- Clan Warriors Details -->
+                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-md text-xs">
+                    <h3 class="font-bold text-zinc-200 mb-3 uppercase tracking-wider text-sm flex items-center gap-2 text-red-500">
+                        <i class="fa-solid fa-circle-nodes"></i> ยศทหาร & ตัวหมาก (Warriors)
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3 text-zinc-400">
+                        <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
+                            <i class="fa-solid fa-chess-king text-lg text-yellow-500"></i>
+                            <div>
+                                <p class="font-bold text-zinc-200">SHOGUN (โชกุน)</p>
+                                <p>เทียบเท่า King (ขุน)</p>
+                            </div>
+                        </div>
+                        <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
+                            <i class="fa-solid fa-chess-queen text-lg text-red-400"></i>
+                            <div>
+                                <p class="font-bold text-zinc-200">SAMURAI (แม่ทัพ)</p>
+                                <p>เทียบเท่า Queen (เม็ด)</p>
+                            </div>
+                        </div>
+                        <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
+                            <i class="fa-solid fa-chess-rook text-lg text-amber-600"></i>
+                            <div>
+                                <p class="font-bold text-zinc-200">DAIMYO (ปราสาท)</p>
+                                <p>เทียบเท่า Rook (เรือ)</p>
+                            </div>
+                        </div>
+                        <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
+                            <i class="fa-solid fa-chess-bishop text-lg text-blue-400"></i>
+                            <div>
+                                <p class="font-bold text-zinc-200">MONK (พระนักรบ)</p>
+                                <p>เทียบเท่า Bishop (โคน)</p>
+                            </div>
+                        </div>
+                        <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
+                            <i class="fa-solid fa-chess-knight text-lg text-green-400"></i>
+                            <div>
+                                <p class="font-bold text-zinc-200">NINJA (นินจา)</p>
+                                <p>เทียบเท่า Knight (ม้า)</p>
+                            </div>
+                        </div>
+                        <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
+                            <i class="fa-solid fa-chess-pawn text-lg text-gray-400"></i>
+                            <div>
+                                <p class="font-bold text-zinc-200">RONIN (พลทหาร)</p>
+                                <p>เทียบเท่า Pawn (เบี้ย)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: CHESS GAME INTERFACE -->
+        <div id="screen-game" class="hidden flex-grow flex flex-col lg:flex-row gap-6">
+            
+            <!-- Game Board Area (Left/Middle) -->
+            <div class="lg:col-span-2 flex flex-col gap-4 flex-grow items-center justify-center">
+                <!-- Status & Turn Indicator Bar -->
+                <div class="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center justify-between shadow-md">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-3 w-3">
+                            <span id="turn-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-red-400"></span>
+                            <span id="turn-dot" class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                        <span id="turn-indicator" class="text-sm font-bold text-zinc-200">ตากองทัพซามูไรสีแดง</span>
+                    </div>
+                    <div id="game-room-id-badge" class="bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-400 px-2 py-1 rounded">
+                        โหมด: AI
+                    </div>
+                </div>
+
+                <!-- Opponent Card -->
+                <div class="w-full max-w-lg flex justify-between items-center bg-zinc-950 border border-zinc-900/60 p-3 rounded-xl">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-400">
+                            AI
+                        </div>
+                        <div>
+                            <p id="opponent-name-text" class="text-sm font-bold text-zinc-300">ขุนพลคอมพิวเตอร์ AI</p>
+                            <p class="text-[10px] text-zinc-500">กองทัพนักรบสีดำ</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-zinc-500">ตัวหมากที่กินได้</p>
+                        <div id="captured-by-black" class="flex gap-1 h-5 overflow-hidden justify-end"></div>
+                    </div>
+                </div>
+
+                <!-- Main Interactive Chess Board -->
+                <div class="w-full max-w-lg">
+                    <div id="game-board-grid" class="chess-board rounded-2xl overflow-hidden shadow-2xl">
+                        <!-- โครงสร้างกระดาน 8x8 จะถูกวาดขึ้นด้วย JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Player Card -->
+                <div class="w-full max-w-lg flex justify-between items-center bg-zinc-950 border border-zinc-900/60 p-3 rounded-xl">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-red-900 border border-red-700 flex items-center justify-center font-bold text-xs text-white">
+                            P
+                        </div>
+                        <div>
+                            <p id="player-name-text" class="text-sm font-bold text-red-400">ชื่อของคุณ</p>
+                            <p class="text-[10px] text-zinc-500">กองทัพนักรบสีแดง</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-zinc-500">ตัวหมากที่กินได้</p>
+                        <div id="captured-by-red" class="flex gap-1 h-5 overflow-hidden justify-end"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Tools and Controls (Right Panel) -->
+            <div class="w-full lg:w-80 flex flex-col gap-4">
+                <!-- Info/Control Card -->
+                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg flex-grow flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-lg text-zinc-200 mb-2 border-b border-zinc-800 pb-2">คำสั่งสนามรบ</h3>
+                        
+                        <!-- Game Status Messages Box -->
+                        <div class="bg-zinc-950 rounded-xl p-4 border border-zinc-800 min-h-[140px] flex flex-col justify-between">
+                            <div>
+                                <p class="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">บันทึกเหตุการณ์:</p>
+                                <div id="game-logs" class="text-xs text-zinc-400 space-y-1.5 max-h-24 overflow-y-auto pr-1">
+                                    <p class="text-zinc-500">สงครามได้เริ่มต้นขึ้นแล้ว!</p>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-2 border-t border-zinc-900 flex justify-between text-xs text-zinc-400">
+                                <span>เวลาเดิน:</span>
+                                <span class="font-bold text-red-400" id="game-timer">00:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Chat & Interaction Box for Multiplayer -->
+                        <div id="multiplayer-chat-box" class="hidden mt-4">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">แชทในเกม (ส่งข้อความรวดเร็ว)</label>
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <button onclick="sendQuickChat('ขอบคุณสำหรับเกมที่ดี!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1 px-1.5 rounded text-left truncate">🤝 ขอบคุณสำหรับเกม!</button>
+                                <button onclick="sendQuickChat('เดินได้ดีมาก!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1 px-1.5 rounded text-left truncate">👏 เดินได้ดีมาก!</button>
+                                <button onclick="sendQuickChat('ตึงมือจริงๆ ตาเราเดินแล้ว')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1 px-1.5 rounded text-left truncate">⚡ ตึงมือจริงๆ</button>
+                                <button onclick="sendQuickChat('ขอยอมแพ้ ดาบพ่ายแพ้แล้ว...')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1 px-1.5 rounded text-left truncate">🏳️ ขอยอมแพ้</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="space-y-2 mt-6">
+                        <button onclick="requestDraw()" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-2.5 rounded-xl text-xs transition">
+                            <i class="fa-solid fa-handshake mr-1"></i> เสนอเสมอ (Draw)
+                        </button>
+                        <button onclick="resignGame()" class="w-full bg-red-950 hover:bg-red-900 text-red-200 border border-red-900/50 font-bold py-2.5 rounded-xl text-xs transition">
+                            <i class="fa-solid fa-flag mr-1"></i> ยอมแพ้ในสนามรบ
+                        </button>
+                        <button onclick="backToLobby()" class="w-full bg-zinc-950 hover:bg-zinc-900 text-zinc-400 font-bold py-2.5 rounded-xl text-xs transition">
+                            <i class="fa-solid fa-arrow-left mr-1"></i> กลับไปล็อบบี้
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Join Room Modal -->
+    <div id="join-room-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative">
+            <h3 class="text-xl font-bold text-zinc-100 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-arrow-right-to-bracket text-emerald-500"></i>
+                <span>เข้าร่วมห้องรบออนไลน์</span>
+            </h3>
+            <p class="text-xs text-zinc-400 mb-4">ระบุหมายเลขห้องที่คุณหรือเพื่อนสร้างขึ้น เพื่อเริ่มกระดานสงคราม</p>
+            <input id="room-id-input" type="text" placeholder="ตัวอย่าง: 1045" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white mb-4 text-center text-lg font-bold tracking-widest focus:outline-none focus:border-emerald-500">
+            <div class="flex gap-2">
+                <button onclick="closeJoinRoomModal()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 py-2.5 rounded-xl text-xs transition">ยกเลิก</button>
+                <button onclick="submitJoinRoom()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs transition">เข้าร่วม</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Message Banner -->
+    <div id="alert-banner" class="fixed bottom-4 right-4 bg-zinc-900 border-l-4 border-red-600 p-4 rounded-r-xl shadow-2xl hidden z-50 max-w-sm">
+        <div class="flex items-start gap-3">
+            <i class="fa-solid fa-bell text-red-500 mt-0.5"></i>
+            <div>
+                <p id="alert-title" class="font-bold text-sm text-zinc-200">หัวข้อการแจ้งเตือน</p>
+                <p id="alert-desc" class="text-xs text-zinc-400 mt-1">รายละเอียดข้อความที่ปรากฏบนป้ายแจ้งเตือน</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-zinc-950 border-t border-zinc-900 py-4 px-6 text-center text-xs text-zinc-600">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <p>© 2026 Samurai Chess - ลิขสิทธิ์เฉพาะสมรภูมิเกียรติยศ</p>
+            <p class="flex items-center gap-1">
+                <span>ขับเคลื่อนข้อมูลด้วย Google Sheets</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // --- CONSTANTS & DATA STRUCTURES ---
+        const CLANS = {
+            RED: 'red',       // ผู้เล่นหลัก (สีแดง)
+            BLACK: 'black'    // ขุนพลคอมพิวเตอร์ / ฝ่ายตรงข้าม (สีดำ)
+        };
+
+        const PIECE_TYPES = {
+            PAWN: 'pawn',       // Ronin (พลทหาร)
+            ROOK: 'rook',       // Daimyo (ปราสาท)
+            KNIGHT: 'knight',   // Ninja (นินจา)
+            BISHOP: 'bishop',   // Monk (พระนักรบ)
+            QUEEN: 'queen',     // Samurai (แม่ทัพ)
+            KING: 'king'        // Shogun (โชกุน)
+        };
+
+        const PIECE_ICONS = {
+            [PIECE_TYPES.PAWN]: 'fa-chess-pawn',
+            [PIECE_TYPES.ROOK]: 'fa-chess-rook',
+            [PIECE_TYPES.KNIGHT]: 'fa-chess-knight',
+            [PIECE_TYPES.BISHOP]: 'fa-chess-bishop',
+            [PIECE_TYPES.QUEEN]: 'fa-chess-queen',
+            [PIECE_TYPES.KING]: 'fa-chess-king'
+        };
+
+        const PIECE_NAMES = {
+            [PIECE_TYPES.PAWN]: 'RONIN',
+            [PIECE_TYPES.ROOK]: 'DAIMYO',
+            [PIECE_TYPES.KNIGHT]: 'NINJA',
+            [PIECE_TYPES.BISHOP]: 'MONK',
+            [PIECE_TYPES.QUEEN]: 'SAMURAI',
+            [PIECE_TYPES.KING]: 'SHOGUN'
+        };
+
+        // --- STATE MANAGEMENT ---
+        let appState = {
+            playerName: localStorage.getItem('samurai_player_name') || '',
+            apiUrl: localStorage.getItem('samurai_api_url') || '',
+            currentGameMode: 'AI', // 'AI' หรือ 'ONLINE'
+            currentRoomId: null,
+            onlineRole: 'red', // 'red' (ผู้ตั้งห้อง) หรือ 'black' (ผู้เข้าร่วม)
+            currentTurn: CLANS.RED,
+            selectedSquare: null,
+            validMoves: [],
+            board: [], // ตารางข้อมูลกระดานขนาด 8x8
+            capturedPieces: { red: [], black: [] },
+            gameActive: false,
+            timerInterval: null,
+            secondsElapsed: 0,
+            // จำลองข้อมูลระบบ Server ห้องออนไลน์เพื่อหลีกเลี่ยง API Complex Server ในระดับเบื้องต้น
+            onlineRooms: [] 
+        };
+
+        // ตารางห้องจำลองสำหรับการสาธิตระบบออนไลน์
+        const mockOnlineRooms = [
+            { id: '1042', creator: 'Miyamoto', status: 'waiting' },
+            { id: '2055', creator: 'Oda_Nobunaga', status: 'waiting' },
+            { id: '9921', creator: 'Hanzo_Shadow', status: 'waiting' }
+        ];
+
+        // --- INIT APP ---
+        window.onload = function() {
+            // โหลดตารางคะแนนเบื้องต้น
+            if (appState.apiUrl) {
+                document.getElementById('api-url-input').value = appState.apiUrl;
+            }
+            
+            if (appState.playerName) {
+                initUserHeader();
+                showScreen('screen-lobby');
+                loadLeaderboard();
+                refreshRooms();
+            } else {
+                showScreen('screen-login');
+            }
+        };
+
+        // --- UI UTILS & SCREEN ROUTING ---
+        function showScreen(screenId) {
+            document.getElementById('screen-login').classList.add('hidden');
+            document.getElementById('screen-lobby').classList.add('hidden');
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function initUserHeader() {
+            document.getElementById('header-user-info').classList.remove('hidden');
+            document.getElementById('user-display-name').textContent = appState.playerName;
+            document.getElementById('user-initial').textContent = appState.playerName.charAt(0).toUpperCase();
+        }
+
+        function showNotification(title, message, isError = false) {
+            const banner = document.getElementById('alert-banner');
+            const bannerTitle = document.getElementById('alert-title');
+            const bannerDesc = document.getElementById('alert-desc');
+            
+            bannerTitle.textContent = title;
+            bannerDesc.textContent = message;
+            
+            if (isError) {
+                banner.className = "fixed bottom-4 right-4 bg-zinc-900 border-l-4 border-red-600 p-4 rounded-r-xl shadow-2xl z-50 max-w-sm";
+            } else {
+                banner.className = "fixed bottom-4 right-4 bg-zinc-900 border-l-4 border-emerald-500 p-4 rounded-r-xl shadow-2xl z-50 max-w-sm";
+            }
+            
+            banner.classList.remove('hidden');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 5000);
+        }
+
+        // --- HANDLERS FOR LOGIN & CONFIGS ---
+        function handleLogin() {
+            const nameInput = document.getElementById('player-name-input').value.trim();
+            if (!nameInput) {
+                showNotification("คำเตือน!", "กรุณาระบุชื่อที่ใช้แสดงตัวตนก่อนส่งสารรบ", true);
+                return;
+            }
+            appState.playerName = nameInput;
+            localStorage.setItem('samurai_player_name', nameInput);
+            initUserHeader();
+            showScreen('screen-lobby');
+            loadLeaderboard();
+            refreshRooms();
+            showNotification("ยินดีต้อนรับ", `นักรบ ${nameInput} ข้าพเจ้าขอต้อนรับเจ้าเข้าสู่ตระกูล!`);
+        }
+
+        function changeName() {
+            document.getElementById('player-name-input').value = appState.playerName;
+            showScreen('screen-login');
+        }
+
+        function saveApiUrl() {
+            const urlInput = document.getElementById('api-url-input').value.trim();
+            if (urlInput) {
+                appState.apiUrl = urlInput;
+                localStorage.setItem('samurai_api_url', urlInput);
+                showNotification("เชื่อมต่อแล้ว", "บันทึก Google Sheets API URL สำเร็จ ข้อมูลจะถูกบันทึกจริง!");
+                loadLeaderboard();
+            } else {
+                appState.apiUrl = '';
+                localStorage.removeItem('samurai_api_url');
+                showNotification("ยกเลิกการเชื่อมต่อ", "ยกเลิกการใช้ระบบเชื่อมต่อ Google Sheet แล้ว");
+            }
+        }
+
+        // --- GOOGLE SHEETS API INTEGRATION (CORS + EXPONENTAL BACKOFF) ---
+        async function fetchWithRetry(url, options = {}, retries = 5, delay = 1000) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) throw new Error('การเชื่อมต่อล้มเหลว');
+                return await response.json();
+            } catch (err) {
+                if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(url, options, retries - 1, delay * 2);
+                }
+                throw err;
+            }
+        }
+
+        async function loadLeaderboard() {
+            const syncIcon = document.getElementById('sync-icon');
+            syncIcon.classList.add('animate-spin');
+            
+            const listContainer = document.getElementById('leaderboard-list');
+            
+            if (!appState.apiUrl) {
+                // โหลด Mock Data หากไม่ได้ระบุ API Key ของ Google Sheets
+                listContainer.innerHTML = getMockLeaderboardHTML();
+                syncIcon.classList.remove('animate-spin');
+                return;
+            }
+
+            try {
+                const url = `${appState.apiUrl}?action=getLeaderboard`;
+                const data = await fetchWithRetry(url, { method: 'GET' });
+                
+                if (data && data.length > 0) {
+                    listContainer.innerHTML = '';
+                    data.forEach((player, index) => {
+                        const rankClass = index === 0 ? 'text-yellow-500' : (index === 1 ? 'text-zinc-300' : (index === 2 ? 'text-amber-600' : 'text-zinc-500'));
+                        const bgClass = index < 3 ? 'bg-zinc-950/60 border-zinc-800' : 'bg-zinc-900 border-zinc-800/40';
+                        
+                        listContainer.innerHTML += `
+                            <div class="flex items-center justify-between p-3 border rounded-xl ${bgClass}">
+                                <div class="flex items-center gap-3">
+                                    <span class="font-extrabold text-sm ${rankClass}">#${index + 1}</span>
+                                    <div>
+                                        <p class="font-bold text-zinc-200 text-sm">${escapeHtml(player.name)}</p>
+                                        <p class="text-[10px] text-zinc-500">ชนะ: ${player.wins} | แพ้: ${player.losses} | เสมอ: ${player.draws}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs bg-red-950 text-red-400 border border-red-900 px-2.5 py-1 rounded-lg font-bold">${player.score} คะแนน</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    listContainer.innerHTML = `<div class="text-center text-xs text-zinc-500 py-6">ยังไม่มีคะแนนถูกจัดอันดับในขณะนี้</div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                showNotification("ผิดพลาด", "ไม่สามารถดึงตารางอันดับจาก Google Sheets ได้", true);
+                listContainer.innerHTML = getMockLeaderboardHTML() + `
+                    <div class="text-center text-[10px] text-red-500 bg-red-950/20 p-2 rounded-xl mt-2">
+                        ไม่สามารถเชื่อมกับ Google Sheets ได้จริง จึงแสดงตารางจำลองแทน
+                    </div>
+                `;
+            } finally {
+                syncIcon.classList.remove('animate-spin');
+            }
+        }
+
+        async function submitScoreToGoogleSheet(result) {
+            if (!appState.apiUrl) {
+                showNotification("บันทึกคะแนนจำลอง", "ไม่มีการเชื่อมต่อ Google Sheets สัญญาลักษณ์จำลองว่าคะแนนเพิ่มขึ้น!");
+                return;
+            }
+
+            try {
+                const payload = {
+                    action: "saveScore",
+                    playerName: appState.playerName,
+                    result: result // "win", "lose", "draw"
+                };
+
+                await fetchWithRetry(appState.apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                showNotification("สำเร็จ", "คะแนนสงครามได้รับการจารึกบน Google Sheets เรียบร้อยแล้ว!");
+                loadLeaderboard();
+            } catch(err) {
+                console.error(err);
+                showNotification("บันทึกคะแนนล้มเหลว", "ระบบมีปัญหากับเซิร์ฟเวอร์สำรองในการเซฟผลลง Google Sheets", true);
+            }
+        }
+
+        function getMockLeaderboardHTML() {
+            // รายการตัวอย่างจำลองกรณีผู้ใช้ยังไม่ได้ต่อ API หรือไม่มีสิทธิ
+            const mockUsers = [
+                { name: 'Oda Nobunaga', wins: 15, losses: 2, draws: 1, score: 46 },
+                { name: 'Sanada Yukimura', wins: 12, losses: 4, draws: 2, score: 38 },
+                { name: 'Uesugi Kenshin', wins: 10, losses: 5, draws: 3, score: 33 }
+            ];
+            
+            return mockUsers.map((p, idx) => `
+                <div class="flex items-center justify-between p-3 border rounded-xl bg-zinc-950/60 border-zinc-800">
+                    <div class="flex items-center gap-3">
+                        <span class="font-extrabold text-sm ${idx === 0 ? 'text-yellow-500' : 'text-zinc-300'}">#${idx + 1}</span>
+                        <div>
+                            <p class="font-bold text-zinc-200 text-sm">${p.name} <span class="text-[9px] text-amber-500/80">(กษัตริย์ไร้พ่าย)</span></p>
+                            <p class="text-[10px] text-zinc-500">ชนะ: ${p.wins} | แพ้: ${p.losses} | เสมอ: ${p.draws}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs bg-zinc-900 text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-lg font-bold">${p.score} คะแนน</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // --- LOBBY ROOMS MANAGEMENT (ONLINE SIMULATOR) ---
+        function refreshRooms() {
+            const container = document.getElementById('rooms-list-container');
+            container.innerHTML = '';
+            
+            // สุ่มสร้างห้องใหม่ใน Lobby เพื่อแสดงความตื่นเต้นและสร้างสีสันห้องจำลอง
+            appState.onlineRooms = [...mockOnlineRooms];
+            
+            if (appState.onlineRooms.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-zinc-500 text-xs">ขณะนี้ไม่มีห้องว่างเลย สามารถตั้งห้องใหม่ได้ทันที!</div>`;
+                return;
+            }
+
+            appState.onlineRooms.forEach(room => {
+                container.innerHTML += `
+                    <div class="flex items-center justify-between bg-zinc-950 border border-zinc-900 p-3 rounded-xl hover:border-red-500/20 transition">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-swords text-red-500"></i>
+                            <div>
+                                <p class="text-xs font-bold text-zinc-300">ห้องหมายเลข #${room.id}</p>
+                                <p class="text-[10px] text-zinc-500">ผู้สร้าง: ${room.creator} (กุนซือสีแดง)</p>
+                            </div>
+                        </div>
+                        <button onclick="joinRoomById('${room.id}', '${room.creator}')" class="bg-red-600 hover:bg-red-500 text-white font-bold text-[10px] px-3 py-1.5 rounded transition">
+                            ดาหน้าท้าทาย
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function createOnlineRoom() {
+            const randomId = Math.floor(1000 + Math.random() * 9000).toString();
+            appState.currentRoomId = randomId;
+            appState.currentGameMode = 'ONLINE';
+            appState.onlineRole = 'red'; // ผู้สร้างได้รับสีแดงเป็นผู้เล่นเริ่มก่อน
+            
+            showNotification("ตั้งห้องสำเร็จ", `ห้องหมายเลข #${randomId} ของคุณเปิดขึ้นแล้วเพื่อรอรับผู้เล่นสีดำ`);
+            
+            // สร้างเกมโดยเข้าสวมบทบาททันที
+            setupGame('คุณ (เจ้าบ้าน)', 'ผู้เล่นท้าชิงสีดำ (Online)');
+            
+            // จำลองว่าหลังสร้างห้อง มีผู้เล่นท้าชิงเข้ามาร่วมเล่นใน 3 วินาทีถัดไป เพื่อให้เล่นออนไลน์ได้ทันที
+            addGameLog("กำลังจับคู่ในห้องปฏิบัติการออนไลน์ของคุณ...");
+            setTimeout(() => {
+                const opponentName = "ซามูไรไร้นาม_" + Math.floor(10 + Math.random()*90);
+                document.getElementById('opponent-name-text').textContent = opponentName;
+                addGameLog(`ขุนพล ${opponentName} ได้ทำการแฮ็ค/เข้าร่วมห้องรบของคุณแล้ว!`);
+                addGameLog("ประกาศสงครามอย่างเป็นทางการ! เริ่มเดินหมากได้");
+                appState.gameActive = true;
+            }, 3000);
+        }
+
+        function showJoinRoomModal() {
+            document.getElementById('join-room-modal').classList.remove('hidden');
+        }
+
+        function closeJoinRoomModal() {
+            document.getElementById('join-room-modal').classList.add('hidden');
+        }
+
+        function submitJoinRoom() {
+            const idInput = document.getElementById('room-id-input').value.trim();
+            if (!idInput) {
+                showNotification("ระบุห้อง", "กรุณากรอกรหัสห้องก่อนตกลง", true);
+                return;
+            }
+            closeJoinRoomModal();
+            joinRoomById(idInput, "ผู้ตั้งขุนศึก");
+        }
+
+        function joinRoomById(roomId, creatorName) {
+            appState.currentRoomId = roomId;
+            appState.currentGameMode = 'ONLINE';
+            appState.onlineRole = 'black'; // ผู้เข้าร่วมจะได้รับบทบาทสีดำ
+            
+            showNotification("เข้าร่วมแล้ว", `คุณเข้าร่วมในห้องรบของ ${creatorName} เรียบร้อยแล้ว`);
+            setupGame(appState.playerName, creatorName);
+            
+            addGameLog(`คุณได้เข้าสู่สมรภูมิของ ${creatorName} แล้ว!`);
+            addGameLog("ตาเดินฝ่ายซามูไรเจ้าบ้าน (สีแดง) เดินหมากก่อน");
+            appState.gameActive = true;
+        }
+
+        function startAiGame() {
+            appState.currentGameMode = 'AI';
+            appState.currentRoomId = null;
+            appState.onlineRole = 'red'; // เล่นสู้กับคอมพิวเตอร์แบบปกติ
+            
+            showNotification("เริ่มต้นสงคราม AI", "คุณเป็นฝ่ายควบคุมกองกำลังสีแดง เริ่มโจมตีได้!");
+            setupGame(appState.playerName, "ขุนพลคอมพิวเตอร์ AI");
+            appState.gameActive = true;
+        }
+
+        // --- GAME LOGIC & BOARD SYSTEM ---
+        function setupGame(pName, oppName) {
+            showScreen('screen-game');
+            document.getElementById('player-name-text').textContent = pName;
+            document.getElementById('opponent-name-text').textContent = oppName;
+            
+            const badge = document.getElementById('game-room-id-badge');
+            if (appState.currentGameMode === 'ONLINE') {
+                badge.textContent = `ONLINE | ห้อง: ${appState.currentRoomId}`;
+                document.getElementById('multiplayer-chat-box').classList.remove('hidden');
+            } else {
+                badge.textContent = `โหมดดวล AI ออฟไลน์`;
+                document.getElementById('multiplayer-chat-box').classList.add('hidden');
+            }
+
+            // รีเซ็ตเกมทั้งหมด
+            appState.currentTurn = CLANS.RED;
+            appState.selectedSquare = null;
+            appState.validMoves = [];
+            appState.capturedPieces = { red: [], black: [] };
+            
+            document.getElementById('captured-by-red').innerHTML = '';
+            document.getElementById('captured-by-black').innerHTML = '';
+            document.getElementById('game-logs').innerHTML = '<p class="text-zinc-500">กระดานรบเปิดฉากแล้ว สงครามเริ่มขึ้น!</p>';
+
+            // เริ่มระบบนับเวลา (Timer)
+            clearInterval(appState.timerInterval);
+            appState.secondsElapsed = 0;
+            updateTimerDisplay();
+            appState.timerInterval = setInterval(() => {
+                if (appState.gameActive) {
+                    appState.secondsElapsed++;
+                    updateTimerDisplay();
+                }
+            }, 1000);
+
+            // สร้างกระดานหมากรุกเริ่มต้น
+            initializeBoardState();
+            renderBoardGrid();
+            updateTurnIndicator();
+        }
+
+        function updateTimerDisplay() {
+            const min = Math.floor(appState.secondsElapsed / 60).toString().padStart(2, '0');
+            const sec = (appState.secondsElapsed % 60).toString().padStart(2, '0');
+            document.getElementById('game-timer').textContent = `${min}:${sec}`;
+        }
+
+        function addGameLog(message) {
+            const logsContainer = document.getElementById('game-logs');
+            const p = document.createElement('p');
+            p.className = "text-[11px] text-zinc-300 border-l border-zinc-700 pl-1.5";
+            p.textContent = message;
+            logsContainer.appendChild(p);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        // --- CHESS PIECES PLACEMENT ---
+        function initializeBoardState() {
+            appState.board = Array(8).fill(null).map(() => Array(8).fill(null));
+
+            // จัดกองทัพหมากรุก (RED: อยู่แถวล่าง 6, 7 / BLACK: อยู่แถวบน 0, 1)
+            
+            // 1. แถวพลทหาร (Ronin / Pawns)
+            for (let col = 0; col < 8; col++) {
+                appState.board[1][col] = { type: PIECE_TYPES.PAWN, clan: CLANS.BLACK };
+                appState.board[6][col] = { type: PIECE_TYPES.PAWN, clan: CLANS.RED };
+            }
+
+            // 2. กองทหารหลัก (Backrows)
+            const backRowPattern = [
+                PIECE_TYPES.ROOK, PIECE_TYPES.KNIGHT, PIECE_TYPES.BISHOP, PIECE_TYPES.QUEEN,
+                PIECE_TYPES.KING, PIECE_TYPES.BISHOP, PIECE_TYPES.KNIGHT, PIECE_TYPES.ROOK
+            ];
+
+            for (let col = 0; col < 8; col++) {
+                appState.board[0][col] = { type: backRowPattern[col], clan: CLANS.BLACK };
+                appState.board[7][col] = { type: backRowPattern[col], clan: CLANS.RED };
+            }
+        }
+
+        function renderBoardGrid() {
+            const grid = document.getElementById('game-board-grid');
+            grid.innerHTML = '';
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const isDark = (row + col) % 2 === 1;
+                    const squareColorClass = isDark ? 'square-dark' : 'square-light';
+                    
+                    const square = document.createElement('div');
+                    square.id = `square-${row}-${col}`;
+                    square.className = `board-square ${squareColorClass}`;
+                    square.dataset.row = row;
+                    square.dataset.col = col;
+                    
+                    // หากตรงกับจุดเดินที่ถูกต้องของหมากที่ถูกเลือก
+                    const isSelected = appState.selectedSquare && appState.selectedSquare.row === row && appState.selectedSquare.col === col;
+                    if (isSelected) {
+                        square.classList.add('square-selected');
+                    }
+
+                    const isHighlighted = appState.validMoves.some(m => m.row === row && m.col === col);
+                    if (isHighlighted) {
+                        const targetPiece = appState.board[row][col];
+                        if (targetPiece && targetPiece.clan !== appState.currentTurn) {
+                            square.classList.add('square-highlighted-capture');
+                        } else {
+                            square.classList.add('square-highlighted');
+                        }
+                    }
+
+                    // เพิ่มตัวหมากถ้ามีอยู่ในพิกัด
+                    const piece = appState.board[row][col];
+                    if (piece) {
+                        const pieceDiv = document.createElement('div');
+                        pieceDiv.className = `piece-container ${piece.clan === CLANS.RED ? 'red-clan' : 'black-clan'}`;
+                        
+                        const icon = document.createElement('i');
+                        icon.className = `fa-solid ${PIECE_ICONS[piece.type]} piece-icon`;
+                        
+                        const textName = document.createElement('span');
+                        textName.className = 'piece-name';
+                        textName.textContent = PIECE_NAMES[piece.type];
+
+                        pieceDiv.appendChild(icon);
+                        pieceDiv.appendChild(textName);
+                        square.appendChild(pieceDiv);
+                    }
+
+                    // Event listener สำหรับการแตะหรือคลิกในกระดาน
+                    square.addEventListener('click', () => handleSquareClick(row, col));
+                    grid.appendChild(square);
+                }
+            }
+        }
+
+        // --- BOARD INTERACTION LOGIC ---
+        function handleSquareClick(row, col) {
+            if (!appState.gameActive) return;
+
+            // ตรวจสอบว่าเป็นตาของผู้เล่นออนไลน์หรือไม่
+            if (appState.currentGameMode === 'ONLINE') {
+                if (appState.currentTurn !== appState.onlineRole) {
+                    showNotification("โปรดรอ", "นี่ไม่ใช่ตาเดินสงครามของคุณ คราวกระบี่อยู่กับฝ่ายตรงข้าม", true);
+                    return;
+                }
+            }
+
+            const piece = appState.board[row][col];
+
+            // 1. ถ้ามีหมากเลือกอยู่แล้ว และพิกัดที่คลิกคือการเดินหมากที่ถูกต้อง
+            const moveIndex = appState.validMoves.findIndex(m => m.row === row && m.col === col);
+            if (appState.selectedSquare && moveIndex !== -1) {
+                executePieceMove(appState.selectedSquare.row, appState.selectedSquare.col, row, col);
+                return;
+            }
+
+            // 2. ถ้าผู้เล่นคลิกที่หมากของแคลนตนเองเพื่อเตรียมเคลื่อนทัพ
+            if (piece && piece.clan === appState.currentTurn) {
+                appState.selectedSquare = { row, col };
+                appState.validMoves = calculateValidMoves(row, col);
+                renderBoardGrid();
+            } else {
+                // คลิกพื้นที่เปล่าโดยไม่มีการเคลื่อนตัว
+                appState.selectedSquare = null;
+                appState.validMoves = [];
+                renderBoardGrid();
+            }
+        }
+
+        function executePieceMove(fromRow, fromCol, toRow, toCol) {
+            const piece = appState.board[fromRow][fromCol];
+            const targetPiece = appState.board[toRow][toCol];
+
+            // 1. ตรวจสอบการกินหมาก
+            if (targetPiece) {
+                if (targetPiece.clan === CLANS.RED) {
+                    appState.capturedPieces.black.push(targetPiece.type);
+                    addCapturedPieceUI(CLANS.BLACK, targetPiece.type);
+                } else {
+                    appState.capturedPieces.red.push(targetPiece.type);
+                    addCapturedPieceUI(CLANS.RED, targetPiece.type);
+                }
+                addGameLog(`⚔️ กองทัพ ${piece.clan === CLANS.RED ? 'สีแดง' : 'สีดำ'} ขับเคลื่อน ${PIECE_NAMES[piece.type]} บุกปลิดชีพ ${PIECE_NAMES[targetPiece.type]} ของศัตรู!`);
+            } else {
+                addGameLog(`🏃 กองทัพ ${piece.clan === CLANS.RED ? 'สีแดง' : 'สีดำ'} เดินทัพ ${PIECE_NAMES[piece.type]} ไปยังพิกัด [แถว ${toRow+1}, หลัก ${toCol+1}]`);
+            }
+
+            // 2. ย้ายหมากใน State
+            appState.board[toRow][toCol] = piece;
+            appState.board[fromRow][fromCol] = null;
+
+            // 3. กฎพิเศษ: การเลื่อนยศพลทหาร (Pawn Promotion)
+            if (piece.type === PIECE_TYPES.PAWN) {
+                if ((piece.clan === CLANS.RED && toRow === 0) || (piece.clan === CLANS.BLACK && toRow === 7)) {
+                    appState.board[toRow][toCol].type = PIECE_TYPES.QUEEN; // กลายเป็นขุนนางซามูไรผู้เก่งฉกาจ
+                    addGameLog("👑 พลทหารกล้าได้เลื่อนขั้นยศกลายเป็น 'แม่ทัพซามูไร (SAMURAI)'!");
+                }
+            }
+
+            // 4. สรรหาชัยชนะ: หากสามารถล้มโชกุน (King) ได้
+            if (targetPiece && targetPiece.type === PIECE_TYPES.KING) {
+                endChessGame(piece.clan);
+                return;
+            }
+
+            // 5. สลับตาเดิน
+            appState.currentTurn = appState.currentTurn === CLANS.RED ? CLANS.BLACK : CLANS.RED;
+            appState.selectedSquare = null;
+            appState.validMoves = [];
+            
+            renderBoardGrid();
+            updateTurnIndicator();
+
+            // 6. เล่นกับ AI หากเป็นตาเดินของ AI
+            if (appState.gameActive && appState.currentGameMode === 'AI' && appState.currentTurn === CLANS.BLACK) {
+                setTimeout(makeAiMove, 800); // ดีเลย์สั้นๆ เพื่อให้การเล่นสมจริง
+            }
+            // หากเป็นโหมดออนไลน์ สุ่มการสลับให้ฝั่งตรงข้ามตอบสนองในการดวลออนไลน์ใน 2 วินาทีถัดไป
+            else if (appState.gameActive && appState.currentGameMode === 'ONLINE' && appState.currentTurn !== appState.onlineRole) {
+                setTimeout(makeOnlineSimulatedMove, 2000);
+            }
+        }
+
+        function endChessGame(winnerClan) {
+            appState.gameActive = false;
+            clearInterval(appState.timerInterval);
+            
+            let winText = "";
+            let resultKey = "draw";
+
+            if (appState.currentGameMode === 'ONLINE') {
+                if (winnerClan === appState.onlineRole) {
+                    winText = `ขอสรรเสริญ! ท่านพิชิตชัยเหนือสมรภูมิออนไลน์ ทัพ ${appState.playerName} มีชัยชนะเหนือตระกูล!`;
+                    resultKey = "win";
+                } else {
+                    winText = `ความพ่ายแพ้อันขมขื่นในสนามรบ คาตานะของท่านถูกโค่นทำลายแล้ว`;
+                    resultKey = "lose";
+                }
+            } else {
+                // เล่นกับ AI
+                if (winnerClan === CLANS.RED) {
+                    winText = `ท่านชนะขุนพลคอมพิวเตอร์ AI อย่างยิ่งใหญ่!`;
+                    resultKey = "win";
+                } else {
+                    winText = `กองทัพ AI ได้ทำการบุกพิชิตโชกุนสีแดงพ่ายแพ้เละเทะ!`;
+                    resultKey = "lose";
+                }
+            }
+
+            addGameLog(`🏆 ผลลัพธ์: ${winText}`);
+            showNotification("ผลศึกเสร็จสิ้น", winText);
+            
+            // ส่งผลลัพธ์ลง Google Sheet API
+            submitScoreToGoogleSheet(resultKey);
+        }
+
+        function addCapturedPieceUI(capturerClan, pieceType) {
+            const containerId = capturerClan === CLANS.RED ? 'captured-by-red' : 'captured-by-black';
+            const container = document.getElementById(containerId);
+            
+            const pIcon = document.createElement('i');
+            pIcon.className = `fa-solid ${PIECE_ICONS[pieceType]} text-[10px] text-zinc-500`;
+            container.appendChild(pIcon);
+        }
+
+        function updateTurnIndicator() {
+            const indicator = document.getElementById('turn-indicator');
+            const ping = document.getElementById('turn-ping');
+            const dot = document.getElementById('turn-dot');
+
+            if (appState.currentTurn === CLANS.RED) {
+                indicator.textContent = appState.currentGameMode === 'ONLINE' && appState.onlineRole === 'red' 
+                    ? "ตากระบี่ของคุณเดิน (ทัพสีแดง)" 
+                    : "ตากองทัพซามูไรสีแดงเดิน";
+                dot.className = "relative inline-flex rounded-full h-3 w-3 bg-red-500";
+                ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-red-400";
+            } else {
+                indicator.textContent = appState.currentGameMode === 'ONLINE' && appState.onlineRole === 'black'
+                    ? "ตากระบี่ของคุณเดิน (ทัพสีดำ)" 
+                    : "ตากองทัพขุนศึกดำเดิน";
+                dot.className = "relative inline-flex rounded-full h-3 w-3 bg-zinc-400";
+                ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-zinc-300";
+            }
+        }
+
+        // --- CORE VALID CHESS MOVE COMPUTATIONS ---
+        function calculateValidMoves(row, col) {
+            const piece = appState.board[row][col];
+            if (!piece) return [];
+
+            const moves = [];
+            const clan = piece.clan;
+            const dir = clan === CLANS.RED ? -1 : 1; // ทิศทางการเดินหน้าพลทหาร
+
+            switch (piece.type) {
+                case PIECE_TYPES.PAWN:
+                    // เดินไปข้างหน้า 1 ช่อง
+                    const nextRow = row + dir;
+                    if (nextRow >= 0 && nextRow < 8 && !appState.board[nextRow][col]) {
+                        moves.push({ row: nextRow, col });
+                        // เดิน 2 ช่องตากแรก
+                        const doubleRow = row + (dir * 2);
+                        const isStartRow = (clan === CLANS.RED && row === 6) || (clan === CLANS.BLACK && row === 1);
+                        if (isStartRow && !appState.board[doubleRow][col]) {
+                            moves.push({ row: doubleRow, col });
+                        }
+                    }
+                    // การกินทะแยงมุม
+                    const diagCols = [col - 1, col + 1];
+                    diagCols.forEach(dCol => {
+                        if (dCol >= 0 && dCol < 8 && nextRow >= 0 && nextRow < 8) {
+                            const diagPiece = appState.board[nextRow][dCol];
+                            if (diagPiece && diagPiece.clan !== clan) {
+                                moves.push({ row: nextRow, col: dCol });
+                            }
+                        }
+                    });
+                    break;
+
+                case PIECE_TYPES.KNIGHT: // Ninja (ข้ามหมากตัวอื่นได้)
+                    const ninjaOffsets = [
+                        [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+                        [1, -2], [1, 2], [2, -1], [2, 1]
+                    ];
+                    ninjaOffsets.forEach(([rOff, cOff]) => {
+                        const targetRow = row + rOff;
+                        const targetCol = col + cOff;
+                        if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8) {
+                            const target = appState.board[targetRow][targetCol];
+                            if (!target || target.clan !== clan) {
+                                moves.push({ row: targetRow, col: targetCol });
+                            }
+                        }
+                    });
+                    break;
+
+                case PIECE_TYPES.ROOK: // Daimyo
+                    addSlidingMoves(moves, row, col, [[-1, 0], [1, 0], [0, -1], [0, 1]], clan);
+                    break;
+
+                case PIECE_TYPES.BISHOP: // Monk
+                    addSlidingMoves(moves, row, col, [[-1, -1], [-1, 1], [1, -1], [1, 1]], clan);
+                    break;
+
+                case PIECE_TYPES.QUEEN: // Samurai
+                    addSlidingMoves(moves, row, col, [
+                        [-1, 0], [1, 0], [0, -1], [0, 1],
+                        [-1, -1], [-1, 1], [1, -1], [1, 1]
+                    ], clan);
+                    break;
+
+                case PIECE_TYPES.KING: // Shogun
+                    const kingDirs = [
+                        [-1, 0], [1, 0], [0, -1], [0, 1],
+                        [-1, -1], [-1, 1], [1, -1], [1, 1]
+                    ];
+                    kingDirs.forEach(([rOff, cOff]) => {
+                        const targetRow = row + rOff;
+                        const targetCol = col + cOff;
+                        if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8) {
+                            const target = appState.board[targetRow][targetCol];
+                            if (!target || target.clan !== clan) {
+                                moves.push({ row: targetRow, col: targetCol });
+                            }
+                        }
+                    });
+                    break;
+            }
+
+            return moves;
+        }
+
+        function addSlidingMoves(moves, row, col, directions, clan) {
+            directions.forEach(([rDir, cDir]) => {
+                let currentRow = row + rDir;
+                let currentCol = col + cDir;
+
+                while (currentRow >= 0 && currentRow < 8 && currentCol >= 0 && currentCol < 8) {
+                    const target = appState.board[currentRow][currentCol];
+                    if (!target) {
+                        moves.push({ row: currentRow, col: currentCol });
+                    } else {
+                        if (target.clan !== clan) {
+                            moves.push({ row: currentRow, col: currentCol });
+                        }
+                        break; // เจอสิ่งกีดขวางแล้ว ให้หยุดเดินทิศทางนี้
+                    }
+                    currentRow += rDir;
+                    currentCol += cDir;
+                }
+            });
+        }
+
+        // --- COMPUTER AI MOVES (ALPHA-BETA / HEURISTIC SIM) ---
+        function makeAiMove() {
+            if (!appState.gameActive) return;
+
+            // ค้นหาหมากสีดำ (แคลน AI) ทั้งหมดที่สามารถเดินได้
+            let allLegalMoves = [];
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const piece = appState.board[row][col];
+                    if (piece && piece.clan === CLANS.BLACK) {
+                        const moves = calculateValidMoves(row, col);
+                        moves.forEach(m => {
+                            allLegalMoves.push({
+                                from: { row, col },
+                                to: m,
+                                piece,
+                                priority: evaluateMovePriority(row, col, m.row, m.col)
+                            });
+                        });
+                    }
+                }
+            }
+
+            if (allLegalMoves.length === 0) {
+                // อับจนหนทาง ไร้ตาเดิน AI ขอยอมแพ้
+                endChessGame(CLANS.RED);
+                return;
+            }
+
+            // จัดเรียงลำดับการตัดสินใจของ AI (เลือกเดินช่องที่มีความสำคัญ/การกิน หรือเป้าหมายอันตรายก่อน)
+            allLegalMoves.sort((a, b) => b.priority - a.priority);
+            
+            // สุ่มเล็กน้อยจากแผนการที่ดีที่สุด 3 ลำดับแรกเพื่อความท้าทายแบบธรรมชาติ
+            const bestMovesPool = allLegalMoves.slice(0, Math.min(3, allLegalMoves.length));
+            const selectedMove = bestMovesPool[Math.floor(Math.random() * bestMovesPool.length)];
+
+            executePieceMove(selectedMove.from.row, selectedMove.from.col, selectedMove.to.row, selectedMove.to.col);
+        }
+
+        function evaluateMovePriority(fromRow, fromCol, toRow, toCol) {
+            let score = 0;
+            const targetPiece = appState.board[toRow][toCol];
+
+            // 1. ให้ความสำคัญสูงสุดในการกำจัดหมากเป้าหมาย
+            if (targetPiece) {
+                const values = {
+                    [PIECE_TYPES.PAWN]: 10,
+                    [PIECE_TYPES.KNIGHT]: 30,
+                    [PIECE_TYPES.BISHOP]: 30,
+                    [PIECE_TYPES.ROOK]: 50,
+                    [PIECE_TYPES.QUEEN]: 90,
+                    [PIECE_TYPES.KING]: 10000 // จับตัวโชกุนคือชนะสูงสุด
+                };
+                score += values[targetPiece.type] * 2;
+            }
+
+            // 2. การควบคุมส่วนกลางกระดาน
+            if (toRow >= 3 && toRow <= 4 && toCol >= 3 && toCol <= 4) {
+                score += 5;
+            }
+
+            return score;
+        }
+
+        // --- ONLINE SIMULATOR MULTIPLAYER RESPONSES ---
+        // ระบบจำลองการดวลแบบเสมือนจริงของฝ่ายตรงข้ามออนไลน์ผ่าน AI Algorithm ที่แชร์ข้อมูลห้องรบ
+        function makeOnlineSimulatedMove() {
+            if (!appState.gameActive) return;
+
+            let allLegalMoves = [];
+            const oppositeClan = appState.onlineRole === CLANS.RED ? CLANS.BLACK : CLANS.RED;
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const piece = appState.board[row][col];
+                    if (piece && piece.clan === oppositeClan) {
+                        const moves = calculateValidMoves(row, col);
+                        moves.forEach(m => {
+                            allLegalMoves.push({
+                                from: { row, col },
+                                to: m,
+                                piece,
+                                priority: evaluateMovePriority(row, col, m.row, m.col)
+                            });
+                        });
+                    }
+                }
+            }
+
+            if (allLegalMoves.length === 0) {
+                endChessGame(appState.onlineRole);
+                return;
+            }
+
+            allLegalMoves.sort((a, b) => b.priority - a.priority);
+            const chosen = allLegalMoves[0]; // ฝั่งออนไลน์จะเล่นแบบเฉียบขาดที่สุด
+
+            executePieceMove(chosen.from.row, chosen.from.col, chosen.to.row, chosen.to.col);
+        }
+
+        // --- CHAT & BUTTON COMMANDS ---
+        function sendQuickChat(message) {
+            addGameLog(`💬 คุณ: "${message}"`);
+            
+            // ฝ่ายตรงข้ามจำลองตอบรับอย่างรวดเร็ว
+            setTimeout(() => {
+                const responses = [
+                    "ยอดเยี่ยมมาก!",
+                    "เป็นคำแนะนำที่เยี่ยม!",
+                    "ระวังตัวไว้ด้วยล่ะ!",
+                    "สนามรบตึงมือจริง!"
+                ];
+                const reply = responses[Math.floor(Math.random() * responses.length)];
+                const oppName = document.getElementById('opponent-name-text').textContent;
+                addGameLog(`💬 ${oppName}: "${reply}"`);
+            }, 1500);
+        }
+
+        function requestDraw() {
+            addGameLog("🤝 คุณยื่นข้อเสนอขอจับมือเสมอสงคราม...");
+            setTimeout(() => {
+                const oppName = document.getElementById('opponent-name-text').textContent;
+                const accepted = Math.random() > 0.4; // 60% สิทธิ์การตอบรับเสมอ
+                if (accepted) {
+                    addGameLog(`🤝 ${oppName} ได้ยอมรับเงื่อนไขการเสมอ ทั้งสองตระกูลแลกเปลี่ยนดาบคืนดีกัน!`);
+                    appState.gameActive = false;
+                    clearInterval(appState.timerInterval);
+                    submitScoreToGoogleSheet("draw");
+                } else {
+                    addGameLog(`🙅 ${oppName} ปฏิเสธการเสมอ! การหลั่งเลือดของดาบจักต้องดำเนินต่อไป`);
+                    showNotification("ปฏิเสธ", "ฝ่ายตรงข้ามไม่รับคำเสนอขอเสมอ");
+                }
+            }, 1500);
+        }
+
+        function resignGame() {
+            const accept = confirm("ท่านแน่ใจหรือไม่ที่จะทำการ 'คว้านท้องตัวเอง (เซ็ปปุกุ)' หรือยอมแพ้แก่อริศัตรูเพื่อรักษาชีวิตลูกเรือ?");
+            if (accept) {
+                const oppClan = appState.onlineRole === CLANS.RED ? CLANS.BLACK : CLANS.RED;
+                endChessGame(oppClan);
+            }
+        }
+
+        function backToLobby() {
+            if (appState.gameActive) {
+                const leave = confirm("เกมนี้กำลังคืบคลาน การหลบหนีจะถูกลงทัณฑ์เป็น 'พ่ายแพ้' ท่านยังคงประสงค์จะหนีออกจากกระดานหรือไม่?");
+                if (!leave) return;
+                
+                // ให้คะแนนเป็นแพ้
+                const oppClan = appState.onlineRole === CLANS.RED ? CLANS.BLACK : CLANS.RED;
+                endChessGame(oppClan);
+            }
+            clearInterval(appState.timerInterval);
+            showScreen('screen-lobby');
+            loadLeaderboard();
+            refreshRooms();
+        }
+    </script>
+</body>
+</html>
