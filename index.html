@@ -154,7 +154,9 @@
                     <p class="text-xs text-zinc-400">เข้าสู่ระบบแล้ว</p>
                     <p id="user-display-name" class="text-sm font-bold text-zinc-200">ผู้เล่น</p>
                 </div>
-                <button onclick="changeName()" class="text-xs text-red-400 hover:text-red-300 ml-4 underline">แก้ไขชื่อ</button>
+                <button onclick="handleLogout()" class="text-xs text-red-400 hover:text-red-300 ml-4 flex items-center gap-1 border border-red-900/40 rounded-lg px-2 py-1 hover:bg-red-900/20 transition">
+                    <i class="fa-solid fa-right-from-bracket text-xs"></i> ออกจากระบบ
+                </button>
             </div>
         </div>
     </header>
@@ -162,39 +164,91 @@
     <!-- Main Container -->
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6">
         
-        <!-- API Setup Box (สำหรับตั้งค่า Google Sheets API Link) -->
-        <div id="api-config-box" class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-start gap-3">
-                <i class="fa-solid fa-circle-info text-2xl mt-1 text-yellow-400"></i>
-                <div>
-                    <h3 class="font-bold">เชื่อมต่อ Google Sheets API (ไม่บังคับ)</h3>
-                    <p class="text-xs text-yellow-200/80">กรอก Web App URL ของ Apps Script เพื่อให้ระบบบันทึกคะแนนและแสดงผลตารางคะแนนแบบเรียลไทม์ได้จริง</p>
-                </div>
-            </div>
-            <div class="flex gap-2 w-full sm:w-auto">
-                <input id="api-url-input" type="text" placeholder="https://script.google.com/macros/s/.../exec" class="bg-zinc-950 text-white text-xs border border-yellow-500/40 rounded px-3 py-2 flex-grow sm:w-80 outline-none focus:border-yellow-400">
-                <button onclick="saveApiUrl()" class="bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-xs px-4 py-2 rounded transition whitespace-nowrap">เชื่อมต่อ</button>
-            </div>
-        </div>
-
-        <!-- SCREEN 1: LOGIN Screen -->
+        <!-- SCREEN 1: AUTH Screen (Login / Register) -->
         <div id="screen-login" class="flex-grow flex items-center justify-center py-10">
             <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 via-orange-500 to-red-600"></div>
-                <div class="text-center mb-8">
-                    <i class="fa-solid fa-user-ninja text-5xl text-red-500 mb-4"></i>
-                    <h2 class="text-2xl font-bold text-zinc-100">ประกาศนามนักรบ</h2>
-                    <p class="text-sm text-zinc-400 mt-1">กรุณาระบุชื่อของคุณเพื่อเข้าสู่สนามรบและตารางจัดอันดับ</p>
+                <div class="text-center mb-6">
+                    <i class="fa-solid fa-user-ninja text-5xl text-red-500 mb-3"></i>
+                    <h2 class="text-2xl font-bold text-zinc-100">ประตูสู่สนามรบ</h2>
+                    <p class="text-sm text-zinc-400 mt-1">เข้าสู่ระบบหรือสมัครสมาชิกเพื่อจัดอันดับ</p>
                 </div>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">ชื่อนักรบ (Username)</label>
-                        <input id="player-name-input" type="text" maxlength="15" placeholder="กรอกชื่อของคุณ..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 font-bold tracking-wide">
-                    </div>
-                    <button onclick="handleLogin()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition duration-200 shadow-lg shadow-red-700/20">
-                        เข้าสู่สนามรบ
+
+                <!-- Tabs -->
+                <div class="flex mb-6 bg-zinc-950 rounded-xl p-1 gap-1">
+                    <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 rounded-lg text-sm font-bold transition bg-red-600 text-white">
+                        <i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ
                     </button>
+                    <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 rounded-lg text-sm font-bold transition text-zinc-400 hover:text-zinc-200">
+                        <i class="fa-solid fa-user-plus mr-1"></i> สมัครสมาชิก
+                    </button>
+                </div>
+
+                <!-- LOGIN FORM -->
+                <div id="form-login" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">ชื่อผู้ใช้ (Username)</label>
+                        <input id="login-username" type="text" placeholder="กรอกชื่อผู้ใช้..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 font-bold tracking-wide">
+                    </div>
+                    <div class="relative">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">รหัสผ่าน</label>
+                        <input id="login-password" type="password" placeholder="กรอกรหัสผ่าน..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 pr-12">
+                        <button type="button" onclick="togglePassword('login-password', this)" class="absolute right-3 bottom-3 text-zinc-500 hover:text-zinc-300 transition">
+                            <i class="fa-solid fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                    <div id="login-error" class="hidden text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-lg px-3 py-2"></div>
+                    <button onclick="handleLogin()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition duration-200 shadow-lg shadow-red-700/20">
+                        <i class="fa-solid fa-right-to-bracket mr-2"></i>เข้าสู่สนามรบ
+                    </button>
+                    <p class="text-center text-xs text-zinc-500">
+                        ยังไม่มีบัญชี? 
+                        <button onclick="switchAuthTab('register')" class="text-red-400 hover:text-red-300 underline">สมัครสมาชิกฟรี</button>
+                    </p>
+                </div>
+
+                <!-- REGISTER FORM -->
+                <div id="form-register" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">ชื่อผู้ใช้ (Username) <span class="text-red-400">*</span></label>
+                        <input id="reg-username" type="text" maxlength="15" placeholder="3-15 ตัวอักษร (ไม่มีช่องว่าง)..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 font-bold tracking-wide">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">อีเมล <span class="text-red-400">*</span></label>
+                        <input id="reg-email" type="email" placeholder="your@email.com" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500">
+                    </div>
+                    <div class="relative">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">รหัสผ่าน <span class="text-red-400">*</span></label>
+                        <input id="reg-password" type="password" placeholder="อย่างน้อย 6 ตัวอักษร..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 pr-12">
+                        <button type="button" onclick="togglePassword('reg-password', this)" class="absolute right-3 bottom-3 text-zinc-500 hover:text-zinc-300 transition">
+                            <i class="fa-solid fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">ยืนยันรหัสผ่าน <span class="text-red-400">*</span></label>
+                        <input id="reg-confirm" type="password" placeholder="พิมพ์รหัสผ่านอีกครั้ง..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 pr-12">
+                        <button type="button" onclick="togglePassword('reg-confirm', this)" class="absolute right-3 bottom-3 text-zinc-500 hover:text-zinc-300 transition">
+                            <i class="fa-solid fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                    <!-- Password strength indicator -->
+                    <div id="password-strength" class="hidden">
+                        <div class="flex gap-1 mb-1">
+                            <div id="str-1" class="h-1 flex-1 rounded bg-zinc-800 transition-colors"></div>
+                            <div id="str-2" class="h-1 flex-1 rounded bg-zinc-800 transition-colors"></div>
+                            <div id="str-3" class="h-1 flex-1 rounded bg-zinc-800 transition-colors"></div>
+                            <div id="str-4" class="h-1 flex-1 rounded bg-zinc-800 transition-colors"></div>
+                        </div>
+                        <p id="str-label" class="text-xs text-zinc-500"></p>
+                    </div>
+                    <div id="reg-error" class="hidden text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-lg px-3 py-2"></div>
+                    <button onclick="handleRegister()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition duration-200 shadow-lg shadow-red-700/20">
+                        <i class="fa-solid fa-user-plus mr-2"></i>สมัครสมาชิกและเข้าสู่สนามรบ
+                    </button>
+                    <p class="text-center text-xs text-zinc-500">
+                        มีบัญชีแล้ว? 
+                        <button onclick="switchAuthTab('login')" class="text-red-400 hover:text-red-300 underline">เข้าสู่ระบบ</button>
+                    </p>
                 </div>
             </div>
         </div>
@@ -535,23 +589,110 @@
             [PIECE_TYPES.KING]: 'SHOGUN'
         };
 
+        // --- GOOGLE SHEETS API URL (ฝังตรงนี้เลย ไม่ต้องกรอกใน UI) ---
+        const GAS_API_URL = localStorage.getItem('samurai_api_url') || '';
+        // *** วาง Web App URL ของคุณตรงนี้ ***
+        // const GAS_API_URL = 'https://script.google.com/macros/s/XXXXX/exec';
+
+        // --- AUTH HELPERS (เก็บ users ใน localStorage) ---
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('samurai_users') || '{}');
+        }
+        function saveUsers(users) {
+            localStorage.setItem('samurai_users', JSON.stringify(users));
+        }
+        function getSession() {
+            return JSON.parse(localStorage.getItem('samurai_session') || 'null');
+        }
+        function saveSession(user) {
+            localStorage.setItem('samurai_session', JSON.stringify(user));
+        }
+        function clearSession() {
+            localStorage.removeItem('samurai_session');
+        }
+        function hashPassword(pw) {
+            // simple hash สำหรับ localStorage (ไม่ใช่ production crypto)
+            let h = 0;
+            for (let i = 0; i < pw.length; i++) {
+                h = (Math.imul(31, h) + pw.charCodeAt(i)) | 0;
+            }
+            return h.toString(36);
+        }
+
+        // --- AUTH TAB SWITCHER ---
+        function switchAuthTab(tab) {
+            const isLogin = tab === 'login';
+            document.getElementById('form-login').classList.toggle('hidden', !isLogin);
+            document.getElementById('form-register').classList.toggle('hidden', isLogin);
+            document.getElementById('tab-login').className = isLogin
+                ? 'flex-1 py-2 rounded-lg text-sm font-bold transition bg-red-600 text-white'
+                : 'flex-1 py-2 rounded-lg text-sm font-bold transition text-zinc-400 hover:text-zinc-200';
+            document.getElementById('tab-register').className = isLogin
+                ? 'flex-1 py-2 rounded-lg text-sm font-bold transition text-zinc-400 hover:text-zinc-200'
+                : 'flex-1 py-2 rounded-lg text-sm font-bold transition bg-red-600 text-white';
+            document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('reg-error').classList.add('hidden');
+        }
+
+        function showAuthError(formType, msg) {
+            const el = document.getElementById(`${formType}-error`);
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            btn.innerHTML = isHidden
+                ? '<i class="fa-solid fa-eye-slash text-sm"></i>'
+                : '<i class="fa-solid fa-eye text-sm"></i>';
+        }
+
+        // Password strength meter
+        document.addEventListener('DOMContentLoaded', () => {
+            const pwInput = document.getElementById('reg-password');
+            if (pwInput) {
+                pwInput.addEventListener('input', () => {
+                    const pw = pwInput.value;
+                    document.getElementById('password-strength').classList.toggle('hidden', pw.length === 0);
+                    const strength = calcStrength(pw);
+                    const colors = ['bg-red-600', 'bg-orange-500', 'bg-yellow-400', 'bg-emerald-500'];
+                    const labels = ['อ่อนแอมาก', 'อ่อนแอ', 'ปานกลาง', 'แข็งแกร่ง'];
+                    for (let i = 1; i <= 4; i++) {
+                        const bar = document.getElementById(`str-${i}`);
+                        bar.className = `h-1 flex-1 rounded transition-colors ${i <= strength ? colors[strength - 1] : 'bg-zinc-800'}`;
+                    }
+                    document.getElementById('str-label').textContent = labels[strength - 1] || '';
+                });
+            }
+        });
+
+        function calcStrength(pw) {
+            let s = 0;
+            if (pw.length >= 6) s++;
+            if (pw.length >= 10) s++;
+            if (/[A-Z]/.test(pw) || /[0-9]/.test(pw)) s++;
+            if (/[^A-Za-z0-9]/.test(pw)) s++;
+            return Math.max(1, s);
+        }
+
         // --- STATE MANAGEMENT ---
         let appState = {
-            playerName: localStorage.getItem('samurai_player_name') || '',
-            apiUrl: localStorage.getItem('samurai_api_url') || '',
-            currentGameMode: 'AI', // 'AI' หรือ 'ONLINE'
+            playerName: '',
+            apiUrl: GAS_API_URL,
+            currentGameMode: 'AI',
             currentRoomId: null,
-            onlineRole: 'red', // 'red' (ผู้ตั้งห้อง) หรือ 'black' (ผู้เข้าร่วม)
-            currentTurn: CLANS.RED,
+            onlineRole: 'red',
+            currentTurn: null, // จะถูก set ใน init
             selectedSquare: null,
             validMoves: [],
-            board: [], // ตารางข้อมูลกระดานขนาด 8x8
+            board: [],
             capturedPieces: { red: [], black: [] },
             gameActive: false,
             timerInterval: null,
             secondsElapsed: 0,
-            // จำลองข้อมูลระบบ Server ห้องออนไลน์เพื่อหลีกเลี่ยง API Complex Server ในระดับเบื้องต้น
-            onlineRooms: [] 
+            onlineRooms: []
         };
 
         // ตารางห้องจำลองสำหรับการสาธิตระบบออนไลน์
@@ -563,12 +704,10 @@
 
         // --- INIT APP ---
         window.onload = function() {
-            // โหลดตารางคะแนนเบื้องต้น
-            if (appState.apiUrl) {
-                document.getElementById('api-url-input').value = appState.apiUrl;
-            }
-            
-            if (appState.playerName) {
+            appState.currentTurn = CLANS.RED;
+            const session = getSession();
+            if (session && session.username) {
+                appState.playerName = session.username;
                 initUserHeader();
                 showScreen('screen-lobby');
                 loadLeaderboard();
@@ -624,39 +763,102 @@
             }, 5000);
         }
 
-        // --- HANDLERS FOR LOGIN & CONFIGS ---
+        // --- AUTH HANDLERS ---
         function handleLogin() {
-            const nameInput = document.getElementById('player-name-input').value.trim();
-            if (!nameInput) {
-                showNotification("คำเตือน!", "กรุณาระบุชื่อที่ใช้แสดงตัวตนก่อนส่งสารรบ", true);
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            if (!username || !password) {
+                showAuthError('login', 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
                 return;
             }
-            appState.playerName = nameInput;
-            localStorage.setItem('samurai_player_name', nameInput);
+            const users = getUsers();
+            const key = username.toLowerCase();
+            if (!users[key]) {
+                showAuthError('login', 'ไม่พบบัญชีนี้ กรุณาสมัครสมาชิกก่อน');
+                return;
+            }
+            if (users[key].password !== hashPassword(password)) {
+                showAuthError('login', 'รหัสผ่านไม่ถูกต้อง');
+                return;
+            }
+            const user = users[key];
+            saveSession({ username: user.username, email: user.email });
+            appState.playerName = user.username;
             initUserHeader();
             showScreen('screen-lobby');
             loadLeaderboard();
             refreshRooms();
-            showNotification("ยินดีต้อนรับ", `นักรบ ${nameInput} ข้าพเจ้าขอต้อนรับเจ้าเข้าสู่ตระกูล!`);
+            showNotification("ยินดีต้อนรับ", `นักรบ ${user.username} กลับมาสู่สนามรบแล้ว!`);
         }
 
-        function changeName() {
-            document.getElementById('player-name-input').value = appState.playerName;
+        function handleRegister() {
+            const username = document.getElementById('reg-username').value.trim();
+            const email    = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirm  = document.getElementById('reg-confirm').value;
+
+            if (!username || !email || !password || !confirm) {
+                showAuthError('reg', 'กรุณากรอกข้อมูลให้ครบทุกช่อง');
+                return;
+            }
+            if (username.length < 3) {
+                showAuthError('reg', 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร');
+                return;
+            }
+            if (/\s/.test(username)) {
+                showAuthError('reg', 'ชื่อผู้ใช้ต้องไม่มีช่องว่าง');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showAuthError('reg', 'รูปแบบอีเมลไม่ถูกต้อง');
+                return;
+            }
+            if (password.length < 6) {
+                showAuthError('reg', 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+                return;
+            }
+            if (password !== confirm) {
+                showAuthError('reg', 'รหัสผ่านทั้งสองช่องไม่ตรงกัน');
+                return;
+            }
+            const users = getUsers();
+            const key = username.toLowerCase();
+            if (users[key]) {
+                showAuthError('reg', 'ชื่อผู้ใช้นี้มีผู้ใช้แล้ว กรุณาเลือกชื่ออื่น');
+                return;
+            }
+            // ตรวจ email ซ้ำ
+            if (Object.values(users).some(u => u.email === email)) {
+                showAuthError('reg', 'อีเมลนี้มีการลงทะเบียนแล้ว');
+                return;
+            }
+            users[key] = { username, email, password: hashPassword(password), createdAt: Date.now() };
+            saveUsers(users);
+            saveSession({ username, email });
+            appState.playerName = username;
+            initUserHeader();
+            showScreen('screen-lobby');
+            loadLeaderboard();
+            refreshRooms();
+            showNotification("ยินดีต้อนรับ!", `นักรบ ${username} สมัครสมาชิกสำเร็จแล้ว!`);
+        }
+
+        function handleLogout() {
+            clearSession();
+            appState.playerName = '';
+            const headerInfo = document.getElementById('header-user-info');
+            headerInfo.classList.add('hidden');
+            headerInfo.style.display = 'none';
+            // reset form
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-error').classList.add('hidden');
+            switchAuthTab('login');
             showScreen('screen-login');
         }
 
-        function saveApiUrl() {
-            const urlInput = document.getElementById('api-url-input').value.trim();
-            if (urlInput) {
-                appState.apiUrl = urlInput;
-                localStorage.setItem('samurai_api_url', urlInput);
-                showNotification("เชื่อมต่อแล้ว", "บันทึก Google Sheets API URL สำเร็จ ข้อมูลจะถูกบันทึกจริง!");
-                loadLeaderboard();
-            } else {
-                appState.apiUrl = '';
-                localStorage.removeItem('samurai_api_url');
-                showNotification("ยกเลิกการเชื่อมต่อ", "ยกเลิกการใช้ระบบเชื่อมต่อ Google Sheet แล้ว");
-            }
+        function changeName() {
+            handleLogout();
         }
 
         // --- GOOGLE SHEETS API INTEGRATION (CORS + EXPONENTIAL BACKOFF) ---
@@ -687,15 +889,14 @@
             
             const listContainer = document.getElementById('leaderboard-list');
             
-            if (!appState.apiUrl) {
-                // โหลด Mock Data หากไม่ได้ระบุ API Key ของ Google Sheets
+            if (!GAS_API_URL) {
                 listContainer.innerHTML = getMockLeaderboardHTML();
                 syncIcon.classList.remove('animate-spin');
                 return;
             }
 
             try {
-                const url = `${appState.apiUrl}?action=getLeaderboard`;
+                const url = `${GAS_API_URL}?action=getLeaderboard`;
                 const data = await fetchWithRetry(url, { method: 'GET' });
                 
                 if (data && data.length > 0) {
@@ -703,7 +904,6 @@
                     data.forEach((player, index) => {
                         const rankClass = index === 0 ? 'text-yellow-500' : (index === 1 ? 'text-zinc-300' : (index === 2 ? 'text-amber-600' : 'text-zinc-500'));
                         const bgClass = index < 3 ? 'bg-zinc-950/60 border-zinc-800' : 'bg-zinc-900 border-zinc-800/40';
-                        
                         listContainer.innerHTML += `
                             <div class="flex items-center justify-between p-3 border rounded-xl ${bgClass}">
                                 <div class="flex items-center gap-3">
@@ -724,7 +924,6 @@
                 }
             } catch (err) {
                 console.error(err);
-                showNotification("ผิดพลาด", "ไม่สามารถดึงตารางอันดับจาก Google Sheets ได้", true);
                 listContainer.innerHTML = getMockLeaderboardHTML() + `
                     <div class="text-center text-[10px] text-red-500 bg-red-950/20 p-2 rounded-xl mt-2">
                         ไม่สามารถเชื่อมกับ Google Sheets ได้จริง จึงแสดงตารางจำลองแทน
@@ -736,30 +935,22 @@
         }
 
         async function submitScoreToGoogleSheet(result) {
-            if (!appState.apiUrl) {
-                showNotification("บันทึกคะแนนจำลอง", "ไม่มีการเชื่อมต่อ Google Sheets สัญลักษณ์จำลองว่าคะแนนเพิ่มขึ้น!");
+            if (!GAS_API_URL) {
+                showNotification("บันทึกคะแนนจำลอง", "ยังไม่ได้ตั้งค่า GAS_API_URL คะแนนจะไม่ถูกบันทึกจริง");
                 return;
             }
-
             try {
-                const payload = {
-                    action: "saveScore",
-                    playerName: appState.playerName,
-                    result: result // "win", "lose", "draw"
-                };
-
-                // GAS บล็อก preflight OPTIONS → ต้องส่งเป็น text/plain เพื่อเลี่ยง CORS
-                await fetchWithRetry(appState.apiUrl, {
+                const payload = { action: "saveScore", playerName: appState.playerName, result };
+                await fetchWithRetry(GAS_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payload)
                 });
-                
                 showNotification("สำเร็จ", "คะแนนสงครามได้รับการจารึกบน Google Sheets เรียบร้อยแล้ว!");
                 loadLeaderboard();
             } catch(err) {
                 console.error(err);
-                showNotification("บันทึกคะแนนล้มเหลว", "ระบบมีปัญหากับเซิร์ฟเวอร์สำรองในการเซฟผลลง Google Sheets", true);
+                showNotification("บันทึกคะแนนล้มเหลว", "ระบบมีปัญหากับเซิร์ฟเวอร์ในการเซฟผลลง Google Sheets", true);
             }
         }
 
