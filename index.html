@@ -146,7 +146,7 @@
             </div>
             
             <!-- User Status Header -->
-            <div id="header-user-info" class="hidden flex items-center gap-3 bg-zinc-900 border border-zinc-800 p-2 rounded-lg">
+            <div id="header-user-info" class="hidden items-center gap-3 bg-zinc-900 border border-zinc-800 p-2 rounded-lg">
                 <div class="w-10 h-10 bg-red-800 rounded-full flex items-center justify-center font-bold text-white border border-red-500">
                     <span id="user-initial">U</span>
                 </div>
@@ -200,7 +200,7 @@
         </div>
 
         <!-- SCREEN 2: GAME LOBBY -->
-        <div id="screen-lobby" class="hidden flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div id="screen-lobby" class="hidden flex-grow grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- Left Panel: Mode Selection -->
             <div class="lg:col-span-2 space-y-6">
@@ -464,7 +464,7 @@
     </main>
 
     <!-- Join Room Modal -->
-    <div id="join-room-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div id="join-room-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 items-center justify-center p-4">
         <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative">
             <h3 class="text-xl font-bold text-zinc-100 mb-4 flex items-center gap-2">
                 <i class="fa-solid fa-arrow-right-to-bracket text-emerald-500"></i>
@@ -580,14 +580,26 @@
 
         // --- UI UTILS & SCREEN ROUTING ---
         function showScreen(screenId) {
-            document.getElementById('screen-login').classList.add('hidden');
-            document.getElementById('screen-lobby').classList.add('hidden');
-            document.getElementById('screen-game').classList.add('hidden');
-            document.getElementById(screenId).classList.remove('hidden');
+            // ซ่อนทุก screen ก่อน
+            ['screen-login', 'screen-lobby', 'screen-game'].forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.add('hidden');
+                el.style.display = 'none';
+            });
+            // แสดง screen ที่ต้องการ พร้อมกำหนด display ที่เหมาะสม
+            const target = document.getElementById(screenId);
+            target.classList.remove('hidden');
+            if (screenId === 'screen-lobby') {
+                target.style.display = 'grid'; // screen-lobby ใช้ grid layout
+            } else {
+                target.style.display = 'flex'; // screen อื่นๆ ใช้ flex
+            }
         }
 
         function initUserHeader() {
-            document.getElementById('header-user-info').classList.remove('hidden');
+            const headerInfo = document.getElementById('header-user-info');
+            headerInfo.classList.remove('hidden');
+            headerInfo.style.display = 'flex'; // แก้ไขความขัดแย้งระหว่าง Tailwind 'hidden' กับ 'flex'
             document.getElementById('user-display-name').textContent = appState.playerName;
             document.getElementById('user-initial').textContent = appState.playerName.charAt(0).toUpperCase();
         }
@@ -647,12 +659,19 @@
             }
         }
 
-        // --- GOOGLE SHEETS API INTEGRATION (CORS + EXPONENTAL BACKOFF) ---
+        // --- GOOGLE SHEETS API INTEGRATION (CORS + EXPONENTIAL BACKOFF) ---
         async function fetchWithRetry(url, options = {}, retries = 5, delay = 1000) {
             try {
-                const response = await fetch(url, options);
-                if (!response.ok) throw new Error('การเชื่อมต่อล้มเหลว');
-                return await response.json();
+                // Google Apps Script Web App คืน redirect เสมอ → ต้องใส่ redirect: 'follow'
+                // และ response จาก GAS เป็น text/plain ที่ห่อ JSON ไว้ → ต้องใช้ .text() ก่อน parse
+                const response = await fetch(url, { ...options, redirect: 'follow' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const text = await response.text();
+                try {
+                    return JSON.parse(text);
+                } catch {
+                    throw new Error(`Parse error: ${text.slice(0, 100)}`);
+                }
             } catch (err) {
                 if (retries > 0) {
                     await new Promise(resolve => setTimeout(resolve, delay));
@@ -718,7 +737,7 @@
 
         async function submitScoreToGoogleSheet(result) {
             if (!appState.apiUrl) {
-                showNotification("บันทึกคะแนนจำลอง", "ไม่มีการเชื่อมต่อ Google Sheets สัญญาลักษณ์จำลองว่าคะแนนเพิ่มขึ้น!");
+                showNotification("บันทึกคะแนนจำลอง", "ไม่มีการเชื่อมต่อ Google Sheets สัญลักษณ์จำลองว่าคะแนนเพิ่มขึ้น!");
                 return;
             }
 
@@ -729,9 +748,10 @@
                     result: result // "win", "lose", "draw"
                 };
 
+                // GAS บล็อก preflight OPTIONS → ต้องส่งเป็น text/plain เพื่อเลี่ยง CORS
                 await fetchWithRetry(appState.apiUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payload)
                 });
                 
@@ -825,11 +845,15 @@
         }
 
         function showJoinRoomModal() {
-            document.getElementById('join-room-modal').classList.remove('hidden');
+            const modal = document.getElementById('join-room-modal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
         }
 
         function closeJoinRoomModal() {
-            document.getElementById('join-room-modal').classList.add('hidden');
+            const modal = document.getElementById('join-room-modal');
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
         }
 
         function submitJoinRoom() {
@@ -1167,7 +1191,7 @@
                     const nextRow = row + dir;
                     if (nextRow >= 0 && nextRow < 8 && !appState.board[nextRow][col]) {
                         moves.push({ row: nextRow, col });
-                        // เดิน 2 ช่องตากแรก
+                        // เดิน 2 ช่องตาแรก
                         const doubleRow = row + (dir * 2);
                         const isStartRow = (clan === CLANS.RED && row === 6) || (clan === CLANS.BLACK && row === 1);
                         if (isStartRow && !appState.board[doubleRow][col]) {
