@@ -11,34 +11,6 @@
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDK -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-      import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile }
-        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-      import { getDatabase, ref, set, get, push, onValue, off, remove, serverTimestamp, update }
-        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-      // =============================================
-      // *** วาง Firebase Config ของคุณตรงนี้ ***
-      // ไปที่ https://console.firebase.google.com
-      // → สร้าง Project → Add Web App → คัดลอก config
-      // =============================================
-      const firebaseConfig = {
-        apiKey:            "YOUR_API_KEY",
-        authDomain:        "YOUR_PROJECT.firebaseapp.com",
-        databaseURL:       "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-        projectId:         "YOUR_PROJECT",
-        storageBucket:     "YOUR_PROJECT.appspot.com",
-        messagingSenderId: "YOUR_SENDER_ID",
-        appId:             "YOUR_APP_ID"
-      };
-
-      const app  = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db   = getDatabase(app);
-
-      // expose ไปให้ global JS ใช้ได้
     <style>
         body {
             font-family: 'Kanit', 'Noto Sans Thai', sans-serif;
@@ -775,67 +747,45 @@
             [PIECE_TYPES.KING]: 'SHOGUN'
         };
 
-        // --- GOOGLE SHEETS API URL (ฝังตรงนี้เลย ไม่ต้องกรอกใน UI) ---
-        const GAS_API_URL = localStorage.getItem('samurai_api_url') || '';
-        // *** วาง Web App URL ของคุณตรงนี้ ***
-        // const GAS_API_URL = 'https://script.google.com/macros/s/XXXXX/exec';
+        // =============================================
+        // *** วาง Google Apps Script Web App URL ตรงนี้ ***
+        // URL เดียวใช้ทั้ง Auth + Leaderboard + Rooms
+        // =============================================
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwVpgOOMnQrZK6fRWFumPeqmu4G1uQm6DS6KsLaEvZKloImgCPy22VxZ68cOOIEHcGmzQ/exec';
+        // ตัวอย่าง: 'https://script.google.com/macros/s/AKfycbz.../exec'
 
-        // --- FIREBASE AUTH & DB HELPERS ---
-        // ตรวจว่า Firebase พร้อมใช้งานหรือไม่ (config ถูกกรอกแล้ว)
-        function fbReady() {
-            return window._fb && window._fb.auth && !window._fb.auth.app.options.apiKey.startsWith('YOUR_');
+        function gasReady() {
+            return GAS_API_URL && !GAS_API_URL.startsWith('YOUR_');
         }
 
-        // fallback localStorage สำหรับกรณียังไม่ตั้งค่า Firebase
-        function getUsers() { return JSON.parse(localStorage.getItem('samurai_users') || '{}'); }
-        function saveUsers(u) { localStorage.setItem('samurai_users', JSON.stringify(u)); }
-        function getSession() { return JSON.parse(localStorage.getItem('samurai_session') || 'null'); }
+        // --- SESSION ---
+        function getSession()   { return JSON.parse(localStorage.getItem('samurai_session') || 'null'); }
         function saveSession(u) { localStorage.setItem('samurai_session', JSON.stringify(u)); }
         function clearSession() { localStorage.removeItem('samurai_session'); }
-        function hashPassword(pw) {
-            let h = 0;
-            for (let i = 0; i < pw.length; i++) h = (Math.imul(31, h) + pw.charCodeAt(i)) | 0;
-            return h.toString(36);
-        }
 
-        // Firebase callbacks (ถูก call จาก module script)
-        window._onFirebaseLogin = function(user) {
-            const name = user.displayName || user.email.split('@')[0];
-            appState.playerName = name;
-            saveSession({ username: name, uid: user.uid });
-            if (document.getElementById('screen-login').style.display !== 'none') {
-                initUserHeader();
-                showScreen('screen-lobby');
-                loadLeaderboard();
-                refreshRooms();
-            }
-        };
-        window._onFirebaseLogout = function() {
-            // ไม่ต้องทำอะไร — handleLogout จัดการ UI แล้ว
-        };
-
-        // ---- เขียนข้อมูล user ลง Firebase DB ----
-        async function fbSaveUser(uid, username) {
-            if (!fbReady()) return;
-            const { db, ref, set } = window._fb;
-            await set(ref(db, `users/${uid}`), { username, wins: 0, losses: 0, draws: 0, score: 0, createdAt: Date.now() });
-        }
-
-        async function fbUpdateScore(uid, username, result) {
-            if (!fbReady()) return;
-            const { db, ref, get, update, serverTimestamp } = window._fb;
-            const snap = await get(ref(db, `users/${uid}`));
-            const d = snap.val() || { wins:0, losses:0, draws:0, score:0, username };
-            const delta = result==='win' ? {wins:1,score:3} : result==='draw' ? {draws:1,score:1} : {losses:1,score:0};
-            await update(ref(db, `users/${uid}`), {
-                username,
-                wins:   (d.wins   ||0) + (delta.wins   ||0),
-                losses: (d.losses ||0) + (delta.losses ||0),
-                draws:  (d.draws  ||0) + (delta.draws  ||0),
-                score:  (d.score  ||0) + delta.score,
-                lastUpdated: Date.now()
+        // --- GAS API CALLER (POST, text/plain เพื่อเลี่ยง CORS preflight) ---
+        async function gasCall(payload, retries = 4, delay = 800) {
+            const res = await fetch(GAS_API_URL, {
+                method: 'POST',
+                redirect: 'follow',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
             });
+            const text = await res.text();
+            try { return JSON.parse(text); }
+            catch {
+                if (retries > 0) {
+                    await new Promise(r => setTimeout(r, delay));
+                    return gasCall(payload, retries - 1, delay * 2);
+                }
+                throw new Error('GAS parse error: ' + text.slice(0, 120));
+            }
         }
+
+        // stubs เก่าที่ไม่ใช้แล้ว
+        function fbReady() { return false; }
+        function fbSaveUser() {}
+        function fbUpdateScore() {}
 
         // --- AUTH TAB SWITCHER ---
         function switchAuthTab(tab) {
@@ -979,42 +929,28 @@
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
             if (!username || !password) { showAuthError('login', 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน'); return; }
+            if (!gasReady()) { showAuthError('login', 'ยังไม่ได้ตั้งค่า GAS_API_URL ในโค้ด'); return; }
 
-            if (fbReady()) {
-                // Firebase: ต้องการ email → ใช้ username@samuraichess.app เป็น pseudo-email
-                const email = `${username.toLowerCase()}@samuraichess.app`;
-                try {
-                    const { auth, signInWithEmailAndPassword } = window._fb;
-                    const cred = await signInWithEmailAndPassword(auth, email, password);
-                    const name = cred.user.displayName || username;
-                    saveSession({ username: name, uid: cred.user.uid });
-                    appState.playerName = name;
-                    initUserHeader();
-                    showScreen('screen-lobby');
-                    loadLeaderboard();
-                    refreshRooms();
-                    showNotification("ยินดีต้อนรับ", `นักรบ ${name} กลับมาสู่สนามรบแล้ว!`);
-                } catch(e) {
-                    const msg = e.code === 'auth/invalid-credential' ? 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'
-                              : e.code === 'auth/user-not-found'     ? 'ไม่พบบัญชีนี้ กรุณาสมัครสมาชิกก่อน'
-                              : e.code === 'auth/wrong-password'     ? 'รหัสผ่านไม่ถูกต้อง'
-                              : e.message;
-                    showAuthError('login', msg);
-                }
-            } else {
-                // Fallback: localStorage
-                const users = getUsers();
-                const key = username.toLowerCase();
-                if (!users[key]) { showAuthError('login', 'ไม่พบบัญชีนี้ กรุณาสมัครสมาชิกก่อน'); return; }
-                if (users[key].password !== hashPassword(password)) { showAuthError('login', 'รหัสผ่านไม่ถูกต้อง'); return; }
-                const user = users[key];
-                saveSession({ username: user.username });
-                appState.playerName = user.username;
+            const btn = document.querySelector('#form-login button[onclick="handleLogin()"]');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>กำลังตรวจสอบ...';
+            btn.disabled = true;
+
+            try {
+                const res = await gasCall({ action: 'login', username, password });
+                if (!res.success) { showAuthError('login', res.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'); return; }
+                saveSession({ username: res.username, token: res.token });
+                appState.playerName = res.username;
                 initUserHeader();
                 showScreen('screen-lobby');
                 loadLeaderboard();
                 refreshRooms();
-                showNotification("ยินดีต้อนรับ", `นักรบ ${user.username} กลับมาสู่สนามรบแล้ว!`);
+                showNotification("ยินดีต้อนรับ", `นักรบ ${res.username} กลับมาสู่สนามรบแล้ว!`);
+            } catch(e) {
+                showAuthError('login', 'ไม่สามารถเชื่อมต่อ GAS ได้: ' + e.message);
+            } finally {
+                btn.innerHTML = orig;
+                btn.disabled = false;
             }
         }
 
@@ -1028,55 +964,35 @@
             if (/\s/.test(username))  { showAuthError('reg', 'ชื่อผู้ใช้ต้องไม่มีช่องว่าง'); return; }
             if (password.length < 6)  { showAuthError('reg', 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return; }
             if (password !== confirm)  { showAuthError('reg', 'รหัสผ่านทั้งสองช่องไม่ตรงกัน'); return; }
+            if (!gasReady()) { showAuthError('reg', 'ยังไม่ได้ตั้งค่า GAS_API_URL ในโค้ด'); return; }
 
-            if (fbReady()) {
-                const email = `${username.toLowerCase()}@samuraichess.app`;
-                try {
-                    const { auth, createUserWithEmailAndPassword, updateProfile, db, ref, set } = window._fb;
-                    const cred = await createUserWithEmailAndPassword(auth, email, password);
-                    await updateProfile(cred.user, { displayName: username });
-                    // บันทึก user profile ลง Realtime DB
-                    await set(ref(db, `users/${cred.user.uid}`), {
-                        username, wins: 0, losses: 0, draws: 0, score: 0, createdAt: Date.now()
-                    });
-                    saveSession({ username, uid: cred.user.uid });
-                    appState.playerName = username;
-                    initUserHeader();
-                    showScreen('screen-lobby');
-                    loadLeaderboard();
-                    refreshRooms();
-                    showNotification("ยินดีต้อนรับ!", `นักรบ ${username} สมัครสมาชิกสำเร็จแล้ว!`);
-                } catch(e) {
-                    const msg = e.code === 'auth/email-already-in-use' ? 'ชื่อผู้ใช้นี้มีผู้ใช้แล้ว กรุณาเลือกชื่ออื่น'
-                              : e.code === 'auth/weak-password'        ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
-                              : e.message;
-                    showAuthError('reg', msg);
-                }
-            } else {
-                // Fallback: localStorage
-                const users = getUsers();
-                const key = username.toLowerCase();
-                if (users[key]) { showAuthError('reg', 'ชื่อผู้ใช้นี้มีผู้ใช้แล้ว กรุณาเลือกชื่ออื่น'); return; }
-                users[key] = { username, password: hashPassword(password), createdAt: Date.now() };
-                saveUsers(users);
-                saveSession({ username });
-                appState.playerName = username;
+            const btn = document.querySelector('#form-register button[onclick="handleRegister()"]');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>กำลังสมัคร...';
+            btn.disabled = true;
+
+            try {
+                const res = await gasCall({ action: 'register', username, password });
+                if (!res.success) { showAuthError('reg', res.error || 'สมัครสมาชิกไม่สำเร็จ'); return; }
+                saveSession({ username: res.username, token: res.token });
+                appState.playerName = res.username;
                 initUserHeader();
                 showScreen('screen-lobby');
                 loadLeaderboard();
                 refreshRooms();
-                showNotification("ยินดีต้อนรับ!", `นักรบ ${username} สมัครสมาชิกสำเร็จแล้ว! (โหมด offline)`);
+                showNotification("ยินดีต้อนรับ!", `นักรบ ${res.username} สมัครสมาชิกสำเร็จแล้ว!`);
+            } catch(e) {
+                showAuthError('reg', 'ไม่สามารถเชื่อมต่อ GAS ได้: ' + e.message);
+            } finally {
+                btn.innerHTML = orig;
+                btn.disabled = false;
             }
         }
 
         async function handleLogout() {
-            if (fbReady() && window._fbUser) {
-                await window._fb.signOut(window._fb.auth);
-            }
             clearSession();
             appState.playerName = '';
-            // หยุด listener ห้อง
-            if (window._roomsListener) { window._fb.off(window._roomsRef); window._roomsListener = null; }
+            if (window._roomsListener) { window._roomsListener(); window._roomsListener = null; }
             const headerInfo = document.getElementById('header-user-info');
             headerInfo.classList.add('hidden');
             headerInfo.style.display = 'none';
@@ -1118,18 +1034,17 @@
             syncIcon.classList.add('animate-spin');
             const listContainer = document.getElementById('leaderboard-list');
 
-            // ลอง Firebase DB ก่อน
-            if (fbReady()) {
-                try {
-                    const { db, ref, get } = window._fb;
-                    const snap = await get(ref(db, 'users'));
-                    syncIcon.classList.remove('animate-spin');
-                    if (!snap.exists()) {
-                        listContainer.innerHTML = `<div class="text-center text-xs text-zinc-500 py-6">ยังไม่มีคะแนนถูกจัดอันดับในขณะนี้</div>`;
-                        return;
-                    }
-                    const players = Object.values(snap.val())
-                        .sort((a,b) => (b.score||0)-(a.score||0) || (b.wins||0)-(a.wins||0));
+            if (!gasReady()) {
+                listContainer.innerHTML = getMockLeaderboardHTML();
+                syncIcon.classList.remove('animate-spin');
+                return;
+            }
+            try {
+                const res = await gasCall({ action: 'getLeaderboard' });
+                const players = res.players || [];
+                if (players.length === 0) {
+                    listContainer.innerHTML = `<div class="text-center text-xs text-zinc-500 py-6">ยังไม่มีคะแนนถูกจัดอันดับในขณะนี้</div>`;
+                } else {
                     listContainer.innerHTML = '';
                     players.forEach((p, i) => {
                         const rankClass = i===0?'text-yellow-500':i===1?'text-zinc-300':i===2?'text-amber-600':'text-zinc-500';
@@ -1146,149 +1061,92 @@
                                 <span class="text-xs bg-red-950 text-red-400 border border-red-900 px-2.5 py-1 rounded-lg font-bold">${p.score||0} คะแนน</span>
                             </div>`;
                     });
-                    return;
-                } catch(e) { console.error('Firebase leaderboard error:', e); }
-            }
-
-            // Fallback: Google Sheets
-            if (!GAS_API_URL) {
-                listContainer.innerHTML = getMockLeaderboardHTML();
-                syncIcon.classList.remove('animate-spin');
-                return;
-            }
-            try {
-                const data = await fetchWithRetry(`${GAS_API_URL}?action=getLeaderboard`, { method:'GET' });
-                listContainer.innerHTML = '';
-                if (data && data.length > 0) {
-                    data.forEach((player, index) => {
-                        const rankClass = index===0?'text-yellow-500':index===1?'text-zinc-300':index===2?'text-amber-600':'text-zinc-500';
-                        const bgClass   = index<3?'bg-zinc-950/60 border-zinc-800':'bg-zinc-900 border-zinc-800/40';
-                        listContainer.innerHTML += `
-                            <div class="flex items-center justify-between p-3 border rounded-xl ${bgClass}">
-                                <div class="flex items-center gap-3">
-                                    <span class="font-extrabold text-sm ${rankClass}">#${index+1}</span>
-                                    <div>
-                                        <p class="font-bold text-zinc-200 text-sm">${escapeHtml(player.name)}</p>
-                                        <p class="text-[10px] text-zinc-500">ชนะ: ${player.wins} | แพ้: ${player.losses} | เสมอ: ${player.draws}</p>
-                                    </div>
-                                </div>
-                                <span class="text-xs bg-red-950 text-red-400 border border-red-900 px-2.5 py-1 rounded-lg font-bold">${player.score} คะแนน</span>
-                            </div>`;
-                    });
-                } else {
-                    listContainer.innerHTML = `<div class="text-center text-xs text-zinc-500 py-6">ยังไม่มีคะแนนถูกจัดอันดับในขณะนี้</div>`;
                 }
             } catch(err) {
-                console.error(err);
-                listContainer.innerHTML = getMockLeaderboardHTML() + `<div class="text-center text-[10px] text-red-500 bg-red-950/20 p-2 rounded-xl mt-2">ไม่สามารถเชื่อมกับฐานข้อมูลได้ จึงแสดงตารางจำลองแทน</div>`;
+                listContainer.innerHTML = getMockLeaderboardHTML() + `<div class="text-center text-[10px] text-red-500 bg-red-950/20 p-2 rounded-xl mt-2">โหลด Leaderboard ไม่สำเร็จ</div>`;
             } finally {
                 syncIcon.classList.remove('animate-spin');
             }
         }
 
         async function submitScoreToGoogleSheet(result) {
-            // บันทึกคะแนนลง Firebase DB (ถ้าเชื่อมต่อแล้ว)
-            if (fbReady() && window._fbUser) {
-                try {
-                    await fbUpdateScore(window._fbUser.uid, appState.playerName, result);
+            if (!gasReady()) return;
+            try {
+                const res = await gasCall({ action: 'saveScore', username: appState.playerName, result });
+                if (res.success) {
                     showNotification("บันทึกคะแนนแล้ว", "คะแนนของคุณถูกจัดอันดับใน Leaderboard แล้ว!");
                     loadLeaderboard();
-                } catch(e) {
-                    console.error('Firebase score update failed:', e);
                 }
-            }
-            // บันทึกลง Google Sheets ด้วย (ถ้าตั้งค่า GAS_API_URL ไว้)
-            if (!GAS_API_URL) return;
-            try {
-                const payload = { action: "saveScore", playerName: appState.playerName, result };
-                await fetchWithRetry(GAS_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(payload)
-                });
-            } catch(err) { console.error('GAS score failed:', err); }
+            } catch(err) { console.error('saveScore failed:', err); }
         }
 
         function getMockLeaderboardHTML() {
-            // รายการตัวอย่างจำลองกรณีผู้ใช้ยังไม่ได้ต่อ API หรือไม่มีสิทธิ
             const mockUsers = [
-                { name: 'Oda Nobunaga', wins: 15, losses: 2, draws: 1, score: 46 },
-                { name: 'Sanada Yukimura', wins: 12, losses: 4, draws: 2, score: 38 },
-                { name: 'Uesugi Kenshin', wins: 10, losses: 5, draws: 3, score: 33 }
+                { username: 'Oda Nobunaga',    wins: 15, losses: 2, draws: 1, score: 46 },
+                { username: 'Sanada Yukimura', wins: 12, losses: 4, draws: 2, score: 38 },
+                { username: 'Uesugi Kenshin',  wins: 10, losses: 5, draws: 3, score: 33 }
             ];
-            
             return mockUsers.map((p, idx) => `
                 <div class="flex items-center justify-between p-3 border rounded-xl bg-zinc-950/60 border-zinc-800">
                     <div class="flex items-center gap-3">
-                        <span class="font-extrabold text-sm ${idx === 0 ? 'text-yellow-500' : 'text-zinc-300'}">#${idx + 1}</span>
+                        <span class="font-extrabold text-sm ${idx===0?'text-yellow-500':'text-zinc-300'}">#${idx+1}</span>
                         <div>
-                            <p class="font-bold text-zinc-200 text-sm">${p.name} <span class="text-[9px] text-amber-500/80">(กษัตริย์ไร้พ่าย)</span></p>
+                            <p class="font-bold text-zinc-200 text-sm">${p.username} <span class="text-[9px] text-amber-500/80">(ตัวอย่าง)</span></p>
                             <p class="text-[10px] text-zinc-500">ชนะ: ${p.wins} | แพ้: ${p.losses} | เสมอ: ${p.draws}</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <span class="text-xs bg-zinc-900 text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-lg font-bold">${p.score} คะแนน</span>
-                    </div>
-                </div>
-            `).join('');
+                    <span class="text-xs bg-zinc-900 text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-lg font-bold">${p.score} คะแนน</span>
+                </div>`).join('');
         }
 
         function escapeHtml(text) {
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            return String(text).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
         }
 
-        // --- LOBBY ROOMS MANAGEMENT (ONLINE SIMULATOR) ---
-        function refreshRooms() {
+        // --- LOBBY ROOMS MANAGEMENT ---
+        async function refreshRooms() {
             const container = document.getElementById('rooms-list-container');
+            if (window._roomsTimer) { clearTimeout(window._roomsTimer); window._roomsTimer = null; }
 
-            if (!fbReady()) {
-                // Fallback: แสดงข้อความบอกว่าต้องตั้งค่า Firebase
+            if (!gasReady()) {
                 container.innerHTML = `
                     <div class="text-center py-6 text-zinc-500 text-xs space-y-1">
                         <i class="fa-solid fa-plug-circle-exclamation text-yellow-500 text-xl mb-2 block"></i>
                         <p class="text-yellow-400 font-bold">ระบบออนไลน์ยังไม่ได้เชื่อมต่อ</p>
-                        <p>กรุณาตั้งค่า Firebase Config ในโค้ดก่อนใช้ฟีเจอร์ P2P Room</p>
+                        <p>กรุณาตั้งค่า GAS_API_URL ในโค้ดก่อนใช้ฟีเจอร์ P2P Room</p>
                     </div>`;
                 return;
             }
-
-            const { db, ref, onValue } = window._fb;
-            window._roomsRef = ref(db, 'rooms');
-
-            // หยุด listener เก่าก่อน
-            if (window._roomsListener) { window._fb.off(window._roomsRef); }
-
             container.innerHTML = `<div class="text-center py-4 text-zinc-500 text-xs"><i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังโหลดห้อง...</div>`;
-
-            window._roomsListener = onValue(window._roomsRef, snap => {
+            try {
+                const res = await gasCall({ action: 'getRooms' });
                 container.innerHTML = '';
-                const rooms = snap.val();
-                if (!rooms) {
+                const rooms = (res.rooms || []).filter(r => r.creator !== appState.playerName);
+                if (rooms.length === 0) {
                     container.innerHTML = `<div class="text-center py-6 text-zinc-500 text-xs">ขณะนี้ไม่มีห้องว่าง สามารถตั้งห้องใหม่ได้ทันที!</div>`;
-                    return;
-                }
-                Object.entries(rooms).forEach(([id, room]) => {
-                    if (room.status !== 'waiting') return;
-                    if (room.creator === appState.playerName) return; // ไม่แสดงห้องตัวเอง
-                    container.innerHTML += `
-                        <div class="flex items-center justify-between bg-zinc-950 border border-zinc-900 p-3 rounded-xl hover:border-red-500/20 transition">
-                            <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-swords text-red-500"></i>
-                                <div>
-                                    <p class="text-xs font-bold text-zinc-300">ห้องหมายเลข #${room.roomCode || id.slice(-4)}</p>
-                                    <p class="text-[10px] text-zinc-500">ผู้สร้าง: ${escapeHtml(room.creator)} (กุนซือสีแดง)</p>
+                } else {
+                    rooms.forEach(room => {
+                        container.innerHTML += `
+                            <div class="flex items-center justify-between bg-zinc-950 border border-zinc-900 p-3 rounded-xl hover:border-red-500/20 transition">
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-swords text-red-500"></i>
+                                    <div>
+                                        <p class="text-xs font-bold text-zinc-300">ห้องหมายเลข #${room.roomCode}</p>
+                                        <p class="text-[10px] text-zinc-500">ผู้สร้าง: ${escapeHtml(room.creator)} (กุนซือสีแดง)</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <button onclick="joinRoomById('${id}', '${escapeHtml(room.creator)}')"
-                                class="bg-red-600 hover:bg-red-500 text-white font-bold text-[10px] px-3 py-1.5 rounded transition">
-                                ดาหน้าท้าทาย
-                            </button>
-                        </div>`;
-                });
-                if (container.innerHTML === '') {
-                    container.innerHTML = `<div class="text-center py-6 text-zinc-500 text-xs">ขณะนี้ไม่มีห้องว่าง สามารถตั้งห้องใหม่ได้ทันที!</div>`;
+                                <button onclick="joinRoomById('${room.roomId}','${escapeHtml(room.creator)}')"
+                                    class="bg-red-600 hover:bg-red-500 text-white font-bold text-[10px] px-3 py-1.5 rounded transition">
+                                    ดาหน้าท้าทาย
+                                </button>
+                            </div>`;
+                    });
                 }
-            });
+            } catch(e) {
+                container.innerHTML = `<div class="text-center py-4 text-red-400 text-xs">โหลดห้องไม่สำเร็จ</div>`;
+            }
+            // auto-refresh ทุก 10 วินาที
+            window._roomsTimer = setTimeout(refreshRooms, 10000);
         }
 
         async function createOnlineRoom() {
@@ -1296,45 +1154,46 @@
             appState.currentGameMode = 'ONLINE';
             appState.onlineRole = 'red';
 
-            if (fbReady()) {
-                const { db, ref, push, set, onValue, serverTimestamp } = window._fb;
-                const roomRef = push(ref(db, 'rooms'));
-                appState.currentRoomId = roomRef.key;
-                await set(roomRef, {
-                    roomCode,
-                    creator: appState.playerName,
-                    status: 'waiting',
-                    createdAt: serverTimestamp()
-                });
-
-                showNotification("ตั้งห้องสำเร็จ", `ห้องหมายเลข #${roomCode} เปิดแล้ว รอผู้เล่นสีดำ...`);
-                setupGame('คุณ (เจ้าบ้าน)', 'รอผู้ท้าชิง...');
-                addGameLog(`ห้อง #${roomCode} ถูกสร้างแล้ว กำลังรอผู้เล่นสีดำเข้าร่วม...`);
-
-                // รอ opponent เข้าร่วม
-                const unsubscribe = onValue(roomRef, snap => {
-                    const data = snap.val();
-                    if (data && data.status === 'playing' && data.opponent) {
-                        window._fb.off(roomRef);
-                        const oppName = data.opponent;
-                        document.getElementById('opponent-name-text').textContent = oppName;
-                        addGameLog(`⚔️ นักรบ ${oppName} เข้าร่วมห้องแล้ว! เริ่มสงคราม!`);
-                        appState.gameActive = true;
-                    }
-                });
+            if (gasReady()) {
+                try {
+                    const res = await gasCall({ action: 'createRoom', creator: appState.playerName, roomCode });
+                    appState.currentRoomId = res.roomId;
+                    showNotification("ตั้งห้องสำเร็จ", `ห้องหมายเลข #${roomCode} เปิดแล้ว รอผู้เล่นสีดำ...`);
+                    setupGame('คุณ (เจ้าบ้าน)', 'รอผู้ท้าชิง...');
+                    addGameLog(`ห้อง #${roomCode} ถูกสร้างแล้ว กำลังรอผู้เล่นสีดำเข้าร่วม...`);
+                    // poll รอ opponent
+                    pollForOpponent(res.roomId);
+                } catch(e) {
+                    showNotification("ผิดพลาด", "ไม่สามารถสร้างห้องได้: " + e.message, true);
+                }
             } else {
-                // Fallback
                 appState.currentRoomId = roomCode;
-                showNotification("ตั้งห้องสำเร็จ (offline)", `ห้อง #${roomCode} — ต้องตั้งค่า Firebase เพื่อให้ผู้อื่นเข้าร่วมได้จริง`);
+                showNotification("โหมด offline", `ห้อง #${roomCode} — ตั้งค่า GAS_API_URL เพื่อให้ผู้อื่นเข้าร่วมได้จริง`);
                 setupGame('คุณ (เจ้าบ้าน)', 'ผู้เล่นออนไลน์ (จำลอง)');
-                addGameLog("⚠️ โหมด offline — ไม่มีการเชื่อมต่อ Firebase");
+                addGameLog("⚠️ โหมด offline — ไม่มีการเชื่อมต่อ GAS");
                 setTimeout(() => {
                     const n = "ซามูไรจำลอง_" + Math.floor(10+Math.random()*90);
                     document.getElementById('opponent-name-text').textContent = n;
-                    addGameLog(`${n} เข้าร่วม (จำลอง)`);
-                    appState.gameActive = true;
+                    addGameLog(`${n} เข้าร่วม (จำลอง)`); appState.gameActive = true;
                 }, 2000);
             }
+        }
+
+        async function pollForOpponent(roomId) {
+            const check = async () => {
+                try {
+                    const res = await gasCall({ action: 'getRoom', roomId });
+                    if (res.room && res.room.opponent && res.room.status === 'playing') {
+                        const oppName = res.room.opponent;
+                        document.getElementById('opponent-name-text').textContent = oppName;
+                        addGameLog(`⚔️ นักรบ ${oppName} เข้าร่วมห้องแล้ว! เริ่มสงคราม!`);
+                        appState.gameActive = true;
+                        return;
+                    }
+                } catch(e) {}
+                if (appState.gameActive === false) setTimeout(check, 3000);
+            };
+            setTimeout(check, 3000);
         }
 
         function showJoinRoomModal() {
@@ -1351,10 +1210,7 @@
 
         function submitJoinRoom() {
             const idInput = document.getElementById('room-id-input').value.trim();
-            if (!idInput) {
-                showNotification("ระบุห้อง", "กรุณากรอกรหัสห้องก่อนตกลง", true);
-                return;
-            }
+            if (!idInput) { showNotification("ระบุห้อง", "กรุณากรอกรหัสห้องก่อนตกลง", true); return; }
             closeJoinRoomModal();
             joinRoomById(idInput, "ผู้ตั้งขุนศึก");
         }
@@ -1363,23 +1219,15 @@
             appState.currentRoomId = roomId;
             appState.currentGameMode = 'ONLINE';
             appState.onlineRole = 'black';
-
-            if (fbReady()) {
-                const { db, ref, update } = window._fb;
-                await update(ref(db, `rooms/${roomId}`), {
-                    opponent: appState.playerName,
-                    status: 'playing'
-                });
-                showNotification("เข้าร่วมแล้ว", `เข้าสู่สมรภูมิของ ${creatorName} แล้ว!`);
-                setupGame(appState.playerName, creatorName);
-                addGameLog(`⚔️ คุณเข้าร่วมห้องของ ${creatorName} แล้ว — ฝ่ายสีดำเดินหมาก`);
-                appState.gameActive = true;
-            } else {
-                showNotification("เข้าร่วมแล้ว (offline)", `เข้าสู่สมรภูมิของ ${creatorName} แล้ว (จำลอง)`);
-                setupGame(appState.playerName, creatorName);
-                addGameLog(`เข้าร่วมห้องของ ${creatorName} แล้ว`);
-                appState.gameActive = true;
+            if (gasReady()) {
+                try {
+                    await gasCall({ action: 'joinRoom', roomId, opponent: appState.playerName });
+                } catch(e) { console.error('joinRoom failed:', e); }
             }
+            showNotification("เข้าร่วมแล้ว", `เข้าสู่สมรภูมิของ ${creatorName} แล้ว!`);
+            setupGame(appState.playerName, creatorName);
+            addGameLog(`⚔️ คุณเข้าร่วมห้องของ ${creatorName} แล้ว — ฝ่ายสีดำเดินหมาก`);
+            appState.gameActive = true;
         }
 
         function startAiGame() {
