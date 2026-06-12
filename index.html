@@ -135,7 +135,12 @@
         .slashing {
             animation: samurai-slash 0.5s ease-in-out;
         }
+        @keyframes bar {
+            from { transform: scaleY(0.3); }
+            to   { transform: scaleY(1); }
+        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
@@ -414,6 +419,30 @@
         <!-- SCREEN 3: CHESS GAME INTERFACE -->
         <div id="screen-game" class="hidden flex-grow flex flex-col lg:flex-row gap-6">
             
+            <!-- Music Player Bar -->
+            <div id="music-bar" class="hidden lg:col-span-3 w-full bg-zinc-900/80 border border-zinc-800 rounded-xl px-4 py-2.5 flex items-center gap-3 shadow" style="display:none">
+                <button id="music-toggle-btn" onclick="toggleMusic()" class="w-8 h-8 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white transition flex-shrink-0" title="เล่น/หยุดเพลง">
+                    <i id="music-icon" class="fa-solid fa-play text-xs"></i>
+                </button>
+                <div class="flex-1 min-w-0">
+                    <p id="music-title" class="text-xs font-bold text-zinc-200 truncate">♪ เพลงซามูไร — ไม่ได้เล่น</p>
+                    <div id="music-visualizer" class="flex gap-0.5 mt-1 h-3 items-end opacity-0 transition-opacity">
+                        <div class="w-1 bg-red-500 rounded-sm" style="height:40%;animation:bar 0.8s ease-in-out infinite alternate"></div>
+                        <div class="w-1 bg-red-400 rounded-sm" style="height:70%;animation:bar 0.6s ease-in-out infinite alternate 0.1s"></div>
+                        <div class="w-1 bg-red-500 rounded-sm" style="height:100%;animation:bar 0.9s ease-in-out infinite alternate 0.2s"></div>
+                        <div class="w-1 bg-red-400 rounded-sm" style="height:60%;animation:bar 0.7s ease-in-out infinite alternate 0.3s"></div>
+                        <div class="w-1 bg-red-500 rounded-sm" style="height:80%;animation:bar 1.0s ease-in-out infinite alternate 0.15s"></div>
+                        <div class="w-1 bg-red-300 rounded-sm" style="height:45%;animation:bar 0.75s ease-in-out infinite alternate 0.25s"></div>
+                        <div class="w-1 bg-red-500 rounded-sm" style="height:90%;animation:bar 0.85s ease-in-out infinite alternate 0.05s"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-volume-low text-zinc-500 text-xs"></i>
+                    <input id="music-volume" type="range" min="0" max="100" value="40" oninput="setMusicVolume(this.value)" class="w-20 h-1 accent-red-500 cursor-pointer">
+                    <i class="fa-solid fa-volume-high text-zinc-500 text-xs"></i>
+                </div>
+            </div>
+            
             <!-- Game Board Area (Left/Middle) -->
             <div class="lg:col-span-2 flex flex-col gap-4 flex-grow items-center justify-center">
                 <!-- Status & Turn Indicator Bar -->
@@ -598,111 +627,183 @@
             [PIECE_TYPES.KING]:   'ขุน'
         };
 
-        // --- SVG หมากรุกไทย (Silhouette style) ---
+        // --- SVG นักรบญี่ปุ่น (Japanese Warrior Style) ---
         function getPieceSVG(type, clan, promoted) {
-            const isRed = clan === CLANS.RED;
-            const fill  = isRed ? '#dc2626' : '#1e293b';
-            const hi    = isRed ? '#fca5a5' : '#475569';  // highlight
-            const out   = isRed ? '#7f1d1d' : '#0f172a';  // outline
+            const isRed  = clan === CLANS.RED;
+            const fill   = isRed ? '#dc2626' : '#1e293b';
+            const hi     = isRed ? '#fca5a5' : '#64748b';
+            const dark   = isRed ? '#7f1d1d' : '#0f172a';
 
-            // เบี้ยหน้า (promoted) — พลิกหน้า วงกลมเล็กๆ บนยอด
+            // เบี้ยหน้า — อาชิกะรุ (Ashigaru) ยกธง
             if (type === PIECE_TYPES.PAWN && promoted) {
-                return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
-                  <circle cx="32" cy="8" r="5" fill="${hi}" stroke="${out}" stroke-width="1.5"/>
-                  <ellipse cx="32" cy="20" rx="8" ry="7" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <path d="M20 28 Q18 44 20 54 L44 54 Q46 44 44 28 Q38 25 32 25 Q26 25 20 28Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <path d="M20 36 Q32 40 44 36" stroke="${hi}" stroke-width="1" fill="none" opacity="0.5"/>
-                  <rect x="16" y="54" width="32" height="5" rx="2.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                return `<svg viewBox="0 0 60 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">
+                  <!-- ธง -->
+                  <line x1="42" y1="4" x2="42" y2="26" stroke="${hi}" stroke-width="1.5"/>
+                  <path d="M42 4 L54 10 L42 16Z" fill="${hi}"/>
+                  <!-- หัวหมวก ashigaru -->
+                  <ellipse cx="28" cy="14" rx="9" ry="8" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <path d="M19 17 Q14 20 16 24 L40 24 Q42 20 37 17Z" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <!-- หน้ากาก -->
+                  <rect x="20" y="20" width="16" height="8" rx="3" fill="${dark}" opacity="0.5"/>
+                  <ellipse cx="24" cy="22" rx="2" ry="1.5" fill="${hi}" opacity="0.8"/>
+                  <ellipse cx="32" cy="22" rx="2" ry="1.5" fill="${hi}" opacity="0.8"/>
+                  <!-- ลำตัว -->
+                  <path d="M20 27 Q17 38 18 48 L38 48 Q39 38 36 27Z" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <!-- แขน ถือหอก -->
+                  <path d="M36 30 L46 24 L48 27 L38 33" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <rect x="8" y="48" width="40" height="6" rx="3" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
                 </svg>`;
             }
 
             const svgs = {
-                // เบี้ย — ลำตัวเล็ก หัวกลม ฐานแคบ
-                pawn: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
-                  <ellipse cx="32" cy="14" rx="9" ry="9" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <path d="M23 23 Q20 36 22 46 L42 46 Q44 36 41 23 Q37 21 32 21 Q27 21 23 23Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <rect x="18" y="46" width="28" height="5" rx="2.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <rect x="14" y="51" width="36" height="5" rx="2.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                // เบี้ย — อาชิกะรุ (Ashigaru) ทหารเดินเท้า หมวกกลม
+                pawn: `<svg viewBox="0 0 60 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">
+                  <!-- หมวก jingasa (กลมแบน) -->
+                  <ellipse cx="30" cy="12" rx="14" ry="5" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <ellipse cx="30" cy="14" rx="10" ry="7" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <!-- หน้า -->
+                  <ellipse cx="30" cy="20" rx="7" ry="6" fill="${hi}" stroke="${dark}" stroke-width="1"/>
+                  <!-- ผ้าปิดหน้า menpō -->
+                  <path d="M23 22 Q30 27 37 22 L37 26 Q30 31 23 26Z" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <!-- จมูกยักษ์ menpō -->
+                  <ellipse cx="30" cy="24" rx="2.5" ry="2" fill="${dark}" opacity="0.6"/>
+                  <!-- ลำตัว dō-maru -->
+                  <path d="M22 29 Q19 40 20 50 L40 50 Q41 40 38 29Q34 27 30 27 Q26 27 22 29Z" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <!-- แถบเกราะ lamellar -->
+                  <line x1="20" y1="34" x2="40" y2="34" stroke="${dark}" stroke-width="0.8" opacity="0.5"/>
+                  <line x1="20" y1="39" x2="40" y2="39" stroke="${dark}" stroke-width="0.8" opacity="0.5"/>
+                  <line x1="20" y1="44" x2="40" y2="44" stroke="${dark}" stroke-width="0.8" opacity="0.5"/>
+                  <rect x="12" y="50" width="36" height="6" rx="3" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
                 </svg>`,
 
-                // เรือ — ยอดหยัก 3 แฉก ลำตัวสี่เหลี่ยม
-                rook: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
-                  <rect x="12" y="4"  width="9" height="12" rx="1.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <rect x="27" y="4"  width="10" height="12" rx="1.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <rect x="43" y="4"  width="9" height="12" rx="1.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <rect x="12" y="14" width="40" height="8"  rx="2" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <path d="M16 22 L14 50 L50 50 L48 22Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <rect x="10" y="50" width="44" height="7" rx="3" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                // เรือ — samurai พร้อมธงสัญลักษณ์ (sashimono)
+                rook: `<svg viewBox="0 0 60 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">
+                  <!-- sashimono (ธงหลัง) -->
+                  <line x1="44" y1="2" x2="44" y2="30" stroke="${hi}" stroke-width="1.5" opacity="0.9"/>
+                  <rect x="44" y="2" width="10" height="14" rx="1" fill="${hi}" opacity="0.8"/>
+                  <!-- kabuto หมวกซามูไรเต็มยศ -->
+                  <path d="M14 20 Q14 6 30 6 Q46 6 46 20 L44 24 Q30 20 16 24Z" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
+                  <!-- mae-date (เขาหน้าหมวก) -->
+                  <path d="M22 10 L16 2 L20 8" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <path d="M38 10 L44 2 L40 8" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <!-- shikoro (แผ่นคอ) -->
+                  <path d="M14 22 Q10 28 12 30 L48 30 Q50 28 46 22Z" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <!-- menpō (หน้ากาก) -->
+                  <ellipse cx="30" cy="28" rx="10" ry="7" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <ellipse cx="25" cy="27" rx="2" ry="1.5" fill="${hi}" opacity="0.7"/>
+                  <ellipse cx="35" cy="27" rx="2" ry="1.5" fill="${hi}" opacity="0.7"/>
+                  <path d="M22 32 Q30 36 38 32" stroke="${dark}" stroke-width="1.5" fill="none"/>
+                  <!-- เกราะอก -->
+                  <path d="M18 33 Q15 44 16 54 L44 54 Q45 44 42 33Z" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
+                  <!-- lamellar lines -->
+                  <line x1="17" y1="39" x2="43" y2="39" stroke="${dark}" stroke-width="1" opacity="0.4"/>
+                  <line x1="16" y1="46" x2="44" y2="46" stroke="${dark}" stroke-width="1" opacity="0.4"/>
+                  <rect x="10" y="54" width="40" height="6" rx="3" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
                 </svg>`,
 
-                // ม้า — หัวม้าหันข้าง
-                knight: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
-                  <!-- คอ+หัวม้า -->
-                  <path d="M20 52 L18 36 Q16 24 20 16 Q24 8 32 6 Q38 4 42 8 Q46 12 44 18 Q42 22 38 22 Q36 22 34 24 Q32 26 32 30 L36 36 L38 42 L42 52Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                // ม้า — kiba-musha (ซามูไรขี่ม้า) เงาม้า
+                knight: `<svg viewBox="0 0 60 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">
+                  <!-- หัวม้า -->
+                  <path d="M12 28 Q10 16 18 10 Q24 5 30 8 Q36 11 36 18 Q36 22 32 24 Q30 25 30 28 L34 32 L36 40 L40 52 L28 52 L28 40 L24 32Z" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
                   <!-- หู -->
-                  <path d="M32 6 L28 2 L26 8" fill="${fill}" stroke="${out}" stroke-width="1.2"/>
+                  <path d="M20 10 L16 4 L22 8" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <path d="M28 8 L28 2 L32 6" fill="${fill}" stroke="${dark}" stroke-width="1"/>
                   <!-- ตา -->
-                  <circle cx="38" cy="13" r="2.5" fill="${hi}" stroke="${out}" stroke-width="1"/>
-                  <!-- จมูก -->
-                  <circle cx="44" cy="20" r="1.5" fill="${hi}"/>
-                  <!-- ฐาน -->
-                  <rect x="14" y="52" width="36" height="6" rx="3" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <circle cx="30" cy="14" r="2.5" fill="${hi}" stroke="${dark}" stroke-width="1"/>
+                  <circle cx="30" cy="14" r="1" fill="${dark}"/>
+                  <!-- ขนแผง -->
+                  <path d="M22 10 Q20 18 22 24" stroke="${hi}" stroke-width="2" fill="none" opacity="0.6" stroke-linecap="round"/>
+                  <!-- ผู้ขี่ -->
+                  <ellipse cx="44" cy="18" rx="7" ry="7" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <!-- kabuto เล็ก -->
+                  <path d="M37 16 Q37 10 44 10 Q51 10 51 16 L50 18 Q44 16 38 18Z" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <!-- ลำตัวผู้ขี่ -->
+                  <path d="M38 24 Q36 34 38 44 L50 44 Q52 34 50 24Z" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <rect x="8" y="52" width="44" height="6" rx="3" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
                 </svg>`,
 
-                // โคน — ทรงเพรียว ยอดแหลม มีคอสลิม
-                bishop: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
-                  <!-- ยอด -->
-                  <ellipse cx="32" cy="7" rx="4" ry="5" fill="${hi}" stroke="${out}" stroke-width="1.5"/>
-                  <ellipse cx="32" cy="14" rx="7" ry="7" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <!-- คอ -->
-                  <rect x="28" y="20" width="8" height="5" rx="2" fill="${fill}" stroke="${out}" stroke-width="1"/>
-                  <!-- ลำตัว -->
-                  <path d="M18 25 Q16 40 18 52 L46 52 Q48 40 46 25 Q40 22 32 22 Q24 22 18 25Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <!-- แถบกลาง -->
-                  <path d="M20 38 Q32 42 44 38" stroke="${hi}" stroke-width="1.5" fill="none" opacity="0.5"/>
-                  <rect x="12" y="52" width="40" height="6" rx="3" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                // โคน — yamabushi (นักพรตนักรบ) ผมมวย จีวรรบ
+                bishop: `<svg viewBox="0 0 60 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">
+                  <!-- tokkin (หมวกผ้า yamabushi) -->
+                  <path d="M22 12 Q22 4 30 4 Q38 4 38 12 L36 14 Q30 12 24 14Z" fill="${hi}" stroke="${dark}" stroke-width="1.2"/>
+                  <!-- ผมมวย -->
+                  <ellipse cx="30" cy="14" rx="6" ry="5" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <!-- หน้า สงบ -->
+                  <ellipse cx="30" cy="21" rx="8" ry="7" fill="${hi}" stroke="${dark}" stroke-width="1"/>
+                  <!-- ตา หลับ สมาธิ -->
+                  <line x1="26" y1="20" x2="29" y2="20" stroke="${dark}" stroke-width="1.5" stroke-linecap="round"/>
+                  <line x1="31" y1="20" x2="34" y2="20" stroke="${dark}" stroke-width="1.5" stroke-linecap="round"/>
+                  <!-- เส้นสมาธิ -->
+                  <path d="M26 24 Q30 26 34 24" stroke="${dark}" stroke-width="1" fill="none"/>
+                  <!-- จีวรรบ ลายสาขา -->
+                  <path d="M18 28 Q14 40 16 56 L44 56 Q46 40 42 28 Q36 25 30 25 Q24 25 18 28Z" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
+                  <!-- แขนกางออก -->
+                  <path d="M18 32 L6 28 L6 34 L18 38" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <path d="M42 32 L54 28 L54 34 L42 38" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <!-- ลายผ้า -->
+                  <path d="M22 35 L38 35 M20 42 L40 42 M20 49 L40 49" stroke="${hi}" stroke-width="0.8" opacity="0.4"/>
+                  <rect x="10" y="56" width="40" height="5" rx="2.5" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
                 </svg>`,
 
-                // เม็ด — ทรงผอม สูง มีวงแหวนรอบกลาง
-                queen: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
-                  <!-- ยอดทรงกลม -->
-                  <circle cx="32" cy="8" r="6" fill="${hi}" stroke="${out}" stroke-width="1.5"/>
-                  <!-- คอ -->
-                  <rect x="29" y="13" width="6" height="6" rx="2" fill="${fill}" stroke="${out}" stroke-width="1"/>
-                  <!-- ลำตัวสูง -->
-                  <path d="M20 19 Q17 36 18 52 L46 52 Q47 36 44 19 Q38 17 32 17 Q26 17 20 19Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <!-- วงแหวนกลาง -->
-                  <ellipse cx="32" cy="33" rx="14" ry="4" fill="none" stroke="${hi}" stroke-width="2" opacity="0.6"/>
-                  <!-- ฐาน -->
-                  <rect x="10" y="52" width="44" height="7" rx="3.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                // เม็ด — kunoichi (นินจาหญิง) ท่าพร้อมรบ เสื้อดำ
+                queen: `<svg viewBox="0 0 60 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">
+                  <!-- ผ้าโพกหัว + ปลิว -->
+                  <path d="M16 14 Q16 5 30 5 Q44 5 44 14 L42 16 Q30 13 18 16Z" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <path d="M42 12 L52 8 L48 16 L40 14Z" fill="${fill}" stroke="${dark}" stroke-width="1" opacity="0.8"/>
+                  <!-- ผ้าคาดปาก -->
+                  <rect x="20" y="20" width="20" height="6" rx="3" fill="${fill}" stroke="${dark}" stroke-width="1"/>
+                  <!-- ตา คมกริบ -->
+                  <ellipse cx="25" cy="18" rx="2.5" ry="2" fill="${hi}"/>
+                  <ellipse cx="35" cy="18" rx="2.5" ry="2" fill="${hi}"/>
+                  <!-- หัว -->
+                  <ellipse cx="30" cy="17" rx="10" ry="9" fill="${fill}" stroke="${dark}" stroke-width="1.2"/>
+                  <!-- ลำตัว เสื้อชุดแน่น -->
+                  <path d="M20 26 Q16 38 18 52 L42 52 Q44 38 40 26Q35 24 30 24 Q25 24 20 26Z" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
+                  <!-- เข็มขัด + kunai -->
+                  <rect x="18" y="36" width="24" height="3" rx="1.5" fill="${dark}" opacity="0.6"/>
+                  <!-- kunai ด้ามมีด -->
+                  <line x1="14" y1="30" x2="22" y2="38" stroke="${hi}" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+                  <line x1="46" y1="30" x2="38" y2="38" stroke="${hi}" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+                  <rect x="10" y="52" width="40" height="6" rx="3" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
                 </svg>`,
 
-                // ขุน — มงกุฎ+ไม้กางเขน ลำตัวใหญ่ ฐานกว้าง
-                king: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
-                  <!-- ไม้กางเขนบน -->
-                  <rect x="29" y="2"  width="6"  height="14" rx="2" fill="${hi}" stroke="${out}" stroke-width="1.2"/>
-                  <rect x="24" y="6"  width="16" height="5"  rx="2" fill="${hi}" stroke="${out}" stroke-width="1.2"/>
-                  <!-- มงกุฎ -->
-                  <path d="M12 22 L16 12 L22 18 L32 10 L42 18 L48 12 L52 22Z" fill="${fill}" stroke="${out}" stroke-width="1.5" stroke-linejoin="round"/>
-                  <rect x="12" y="20" width="40" height="7" rx="2" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <!-- ลำตัว -->
-                  <path d="M14 27 L12 52 L52 52 L50 27Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
-                  <!-- ลายกลาง -->
-                  <rect x="26" y="32" width="12" height="10" rx="2" fill="${hi}" stroke="${out}" stroke-width="1" opacity="0.5"/>
-                  <!-- ฐาน -->
-                  <rect x="8"  y="52" width="48" height="7"  rx="3.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                // ขุน — daimyo (โชกุน) เกราะเต็มยศ kabuto ใหญ่
+                king: `<svg viewBox="0 0 60 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">
+                  <!-- sashimono ธงหลัง -->
+                  <line x1="48" y1="2" x2="48" y2="28" stroke="${hi}" stroke-width="1.5" opacity="0.8"/>
+                  <path d="M48 2 L58 8 L48 18Z" fill="${hi}" opacity="0.7"/>
+                  <!-- kabuto ใหญ่ เต็มยศ -->
+                  <path d="M10 22 Q10 4 30 4 Q50 4 50 22 L48 26 Q30 22 12 26Z" fill="${fill}" stroke="${dark}" stroke-width="2"/>
+                  <!-- kuwagata (เขา/เขากวาง) -->
+                  <path d="M14 14 Q8 6 10 2 L14 8 Q16 4 18 6 Q16 10 14 14Z" fill="${hi}" stroke="${dark}" stroke-width="1"/>
+                  <path d="M46 14 Q52 6 50 2 L46 8 Q44 4 42 6 Q44 10 46 14Z" fill="${hi}" stroke="${dark}" stroke-width="1"/>
+                  <!-- shikoro คอ -->
+                  <path d="M10 24 Q6 30 8 34 L52 34 Q54 30 50 24Z" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
+                  <!-- menpō หน้ากากยักษ์ -->
+                  <ellipse cx="30" cy="32" rx="13" ry="9" fill="${fill}" stroke="${dark}" stroke-width="1.5"/>
+                  <ellipse cx="24" cy="30" rx="2.5" ry="2" fill="${hi}" opacity="0.9"/>
+                  <ellipse cx="36" cy="30" rx="2.5" ry="2" fill="${hi}" opacity="0.9"/>
+                  <!-- หนวดยักษ์ -->
+                  <path d="M18 34 Q24 38 30 35 Q36 38 42 34" stroke="${dark}" stroke-width="2" fill="none"/>
+                  <!-- เขี้ยว -->
+                  <path d="M26 35 L25 40 M34 35 L35 40" stroke="${dark}" stroke-width="1.5" stroke-linecap="round"/>
+                  <!-- เกราะอกหนา do -->
+                  <path d="M14 38 Q10 50 12 58 L48 58 Q50 50 46 38Z" fill="${fill}" stroke="${dark}" stroke-width="2"/>
+                  <!-- lamellar -->
+                  <line x1="13" y1="44" x2="47" y2="44" stroke="${hi}" stroke-width="1" opacity="0.3"/>
+                  <line x1="12" y1="51" x2="48" y2="51" stroke="${hi}" stroke-width="1" opacity="0.3"/>
+                  <rect x="6" y="58" width="48" height="5" rx="2.5" fill="${fill}" stroke="${dark}" stroke-width="2"/>
                 </svg>`
             };
             return svgs[type] || svgs.pawn;
         }
-
 
         // =============================================
         // *** วาง Google Apps Script Web App URL ตรงนี้ ***
         // URL เดียวใช้ทั้ง Auth + Leaderboard + Rooms
         // =============================================
         const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwVpgOOMnQrZK6fRWFumPeqmu4G1uQm6DS6KsLaEvZKloImgCPy22VxZ68cOOIEHcGmzQ/exec';
-        // ตัวอย่าง: 'https://script.google.com/macros/s/AKfycbwVpgOOMnQrZK6fRWFumPeqmu4G1uQm6DS6KsLaEvZKloImgCPy22VxZ68cOOIEHcGmzQ/exec'
+        // ตัวอย่าง: 'https://script.google.com/macros/s/AKfycbz.../exec'
 
         function gasReady() {
             return GAS_API_URL && !GAS_API_URL.startsWith('YOUR_');
@@ -1395,10 +1496,9 @@
 
             // 3. กฎพิเศษ: เบี้ยข้ามฝั่งกลายเป็นเบี้ยหน้า
             if (piece.type === PIECE_TYPES.PAWN && !piece.promoted) {
-                // แดง: ข้ามฝั่งเมื่อถึงแถว 0-2 (แถวหน้าของดำ), ดำ: แถว 5-7
-                const promotionZone = clan === CLANS.RED
-                    ? toRow <= 2   // ฝั่งดำ
-                    : toRow >= 5;  // ฝั่งแดง
+                const promotionZone = piece.clan === CLANS.RED
+                    ? toRow <= 2
+                    : toRow >= 5;
                 if (promotionZone) {
                     appState.board[toRow][toCol].promoted = true;
                     addGameLog(`👑 เบี้ยข้ามฝั่งกลายเป็น 'เบี้ยหน้า' เดินได้แบบเม็ด!`);
@@ -1761,6 +1861,133 @@
             loadLeaderboard();
             refreshRooms();
         }
+
+        // ============================================================
+        // 🎵 JAPANESE MUSIC ENGINE (Tone.js — pentatonic koto/shakuhachi)
+        // ============================================================
+        let musicPlaying = false;
+        let musicParts   = [];
+        let musicStarted = false;
+
+        // สเกล pentatonic ญี่ปุ่น (In scale: D E F A Bb)
+        const JP_SCALE = ['D3','E3','F3','A3','Bb3','D4','E4','F4','A4','Bb4','D5','E5'];
+        const JP_LOW   = ['D2','A2','D3','F3'];
+
+        function buildMusic() {
+            Tone.getTransport().bpm.value = 52;
+            Tone.getTransport().timeSignature = 4;
+
+            // --- เครื่องดนตรี ---
+            // Shakuhachi (ขลุ่ยไม้ไผ่) — เมโลดี้หลัก
+            const shakuhachi = new Tone.Synth({
+                oscillator: { type: 'triangle' },
+                envelope:   { attack: 0.3, decay: 0.2, sustain: 0.6, release: 1.8 },
+                volume: -8
+            }).toDestination();
+
+            // Koto (พิณ 13 สาย) — chord/arpeggio
+            const koto = new Tone.PluckSynth({
+                attackNoise: 1.5, dampening: 3200, resonance: 0.94, volume: -10
+            }).toDestination();
+
+            // Taiko (กลองญี่ปุ่น) — bass drum
+            const taiko = new Tone.MembraneSynth({
+                pitchDecay: 0.08, octaves: 6, envelope: { attack: 0.001, decay: 0.5, sustain: 0, release: 0.5 },
+                volume: -4
+            }).toDestination();
+
+            // Ko-tsuzumi (กลองมือเล็ก) — snare-like
+            const kotsuzumi = new Tone.NoiseSynth({
+                noise: { type: 'brown' },
+                envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.1 },
+                volume: -18
+            }).toDestination();
+
+            // Reverb สำหรับ ambient
+            const reverb = new Tone.Reverb({ decay: 3.5, wet: 0.4 }).toDestination();
+            shakuhachi.connect(reverb);
+
+            // --- Pattern เมโลดี้ขลุ่ย (8 บาร์) ---
+            const melody = [
+                ['D4','4n'], [null,'8n'], ['F4','4n'], ['E4','4n'], [null,'8n'],
+                ['A4','4n'], [null,'8n'], ['F4','2n'],
+                ['E4','4n'], ['D4','4n'], ['F4','4n'], [null,'4n'],
+                ['Bb3','4n'],[null,'8n'],['A3','4n'],  ['D4','2n'],
+                ['D5','4n'], [null,'8n'],['Bb4','4n'], ['A4','4n'], [null,'8n'],
+                ['F4','4n'], ['E4','4n'],[null,'4n'],
+                ['A4','4n'], ['F4','4n'],['E4','4n'],  ['D4','4n'],
+                [null,'4n'], ['F3','4n'],['A3','4n'],  ['D4','2n'],
+            ];
+
+            let melodyTime = 0;
+            const melodyPart = new Tone.Part((time, note) => {
+                if (note.pitch) shakuhachi.triggerAttackRelease(note.pitch, note.dur, time);
+            }, melody.map(([p, d]) => {
+                const t = melodyTime;
+                melodyTime += Tone.Time(d).toSeconds();
+                return { time: t, pitch: p, dur: d };
+            }));
+            melodyPart.loop      = true;
+            melodyPart.loopEnd   = melodyTime;
+
+            // --- Koto arpeggio ---
+            const kotoPattern = new Tone.Pattern((time, note) => {
+                koto.triggerAttackRelease(note, '16n', time);
+            }, ['D3','F3','A3','D4','F4','A4','D4','F3'], 'up');
+            kotoPattern.interval  = '8n';
+
+            // --- Taiko beat ---
+            const taikoSeq = new Tone.Sequence((time, hit) => {
+                if (hit) taiko.triggerAttackRelease('C1', '8n', time);
+            }, [1,0,0,0, 0,0,1,0, 1,0,0,1, 0,0,0,0], '8n');
+
+            // --- Ko-tsuzumi ---
+            const kotsu = new Tone.Sequence((time, hit) => {
+                if (hit) kotsuzumi.triggerAttackRelease('8n', time);
+            }, [0,0,1,0, 0,1,0,0, 0,0,1,0, 1,0,0,1], '8n');
+
+            musicParts = [melodyPart, kotoPattern, taikoSeq, kotsu];
+        }
+
+        async function toggleMusic() {
+            await Tone.start(); // unlock AudioContext
+            if (!musicStarted) {
+                buildMusic();
+                musicStarted = true;
+            }
+            if (musicPlaying) {
+                Tone.getTransport().pause();
+                musicParts.forEach(p => p.stop());
+                musicPlaying = false;
+                document.getElementById('music-icon').className = 'fa-solid fa-play text-xs';
+                document.getElementById('music-title').textContent = '♪ เพลงซามูไร — หยุดชั่วคราว';
+                document.getElementById('music-visualizer').style.opacity = '0';
+            } else {
+                musicParts.forEach(p => p.start(0));
+                Tone.getTransport().start();
+                musicPlaying = true;
+                document.getElementById('music-icon').className = 'fa-solid fa-pause text-xs';
+                document.getElementById('music-title').textContent = '♪ Sengoku No Hibiki — กำลังเล่น';
+                document.getElementById('music-visualizer').style.opacity = '1';
+            }
+        }
+
+        function setMusicVolume(val) {
+            Tone.getDestination().volume.value = Tone.gainToDb(val / 100);
+        }
+
+        function showMusicBar() {
+            const bar = document.getElementById('music-bar');
+            bar.style.display = 'flex';
+        }
+
+        // แสดง music bar พร้อมกับเข้าหน้าเกม
+        const _origShowScreen = showScreen;
+        showScreen = function(id) {
+            _origShowScreen(id);
+            if (id === 'screen-game') showMusicBar();
+        };
+
     </script>
 </body>
 </html>
