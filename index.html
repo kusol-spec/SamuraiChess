@@ -151,7 +151,7 @@
                         <span>SAMURAI CHESS</span> 
                         <span class="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded font-normal">สงครามกองทัพญี่ปุ่น</span>
                     </h1>
-                    <p class="text-xs text-zinc-400">ควบคุมซามูไร, โชกุน และนินจาของคุณเพื่อพิชิตสมรภูมิ</p>
+                    <p class="text-xs text-zinc-400">หมากรุกไทย — ขุน เม็ด เรือ โคน ม้า เบี้ย</p>
                 </div>
             </div>
             
@@ -361,49 +361,49 @@
                 <!-- Clan Warriors Details -->
                 <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-md text-xs">
                     <h3 class="font-bold text-zinc-200 mb-3 uppercase tracking-wider text-sm flex items-center gap-2 text-red-500">
-                        <i class="fa-solid fa-circle-nodes"></i> ยศทหาร & ตัวหมาก (Warriors)
+                        <i class="fa-solid fa-chess"></i> หมากรุกไทย
                     </h3>
                     <div class="grid grid-cols-2 gap-3 text-zinc-400">
                         <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
-                            <i class="fa-solid fa-chess-king text-lg text-yellow-500"></i>
+                            <span class="text-xl text-yellow-400">♔</span>
                             <div>
-                                <p class="font-bold text-zinc-200">SHOGUN (โชกุน)</p>
-                                <p>เทียบเท่า King (ขุน)</p>
+                                <p class="font-bold text-zinc-200">ขุน</p>
+                                <p>1 ช่อง 8 ทิศ</p>
                             </div>
                         </div>
                         <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
-                            <i class="fa-solid fa-chess-queen text-lg text-red-400"></i>
+                            <span class="text-xl text-red-400">♕</span>
                             <div>
-                                <p class="font-bold text-zinc-200">SAMURAI (แม่ทัพ)</p>
-                                <p>เทียบเท่า Queen (เม็ด)</p>
+                                <p class="font-bold text-zinc-200">เม็ด</p>
+                                <p>ทะแยง 1 + หน้า 1</p>
                             </div>
                         </div>
                         <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
-                            <i class="fa-solid fa-chess-rook text-lg text-amber-600"></i>
+                            <span class="text-xl text-amber-500">♖</span>
                             <div>
-                                <p class="font-bold text-zinc-200">DAIMYO (ปราสาท)</p>
-                                <p>เทียบเท่า Rook (เรือ)</p>
+                                <p class="font-bold text-zinc-200">เรือ</p>
+                                <p>ตรงไม่จำกัด</p>
                             </div>
                         </div>
                         <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
-                            <i class="fa-solid fa-chess-bishop text-lg text-blue-400"></i>
+                            <span class="text-xl text-blue-400">♗</span>
                             <div>
-                                <p class="font-bold text-zinc-200">MONK (พระนักรบ)</p>
-                                <p>เทียบเท่า Bishop (โคน)</p>
+                                <p class="font-bold text-zinc-200">โคน</p>
+                                <p>ทะแยงไม่จำกัด</p>
                             </div>
                         </div>
                         <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
-                            <i class="fa-solid fa-chess-knight text-lg text-green-400"></i>
+                            <span class="text-xl text-green-400">♘</span>
                             <div>
-                                <p class="font-bold text-zinc-200">NINJA (นินจา)</p>
-                                <p>เทียบเท่า Knight (ม้า)</p>
+                                <p class="font-bold text-zinc-200">ม้า</p>
+                                <p>กระโดด L-shape</p>
                             </div>
                         </div>
                         <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
-                            <i class="fa-solid fa-chess-pawn text-lg text-gray-400"></i>
+                            <span class="text-xl text-zinc-400">♙</span>
                             <div>
-                                <p class="font-bold text-zinc-200">RONIN (พลทหาร)</p>
-                                <p>เทียบเท่า Pawn (เบี้ย)</p>
+                                <p class="font-bold text-zinc-200">เบี้ย / หน้า</p>
+                                <p>หน้า 1, ข้ามฝั่ง→หน้า</p>
                             </div>
                         </div>
                     </div>
@@ -569,183 +569,133 @@
         };
 
         const PIECE_TYPES = {
-            PAWN: 'pawn',       // Ronin (พลทหาร)
-            ROOK: 'rook',       // Daimyo (ปราสาท)
-            KNIGHT: 'knight',   // Ninja (นินจา)
-            BISHOP: 'bishop',   // Monk (พระนักรบ)
-            QUEEN: 'queen',     // Samurai (แม่ทัพ)
-            KING: 'king'        // Shogun (โชกุน)
+            PAWN:   'pawn',    // เบี้ย
+            ROOK:   'rook',    // เรือ
+            KNIGHT: 'knight',  // ม้า
+            BISHOP: 'bishop',  // โคน
+            QUEEN:  'queen',   // เม็ด
+            KING:   'king'     // ขุน
         };
+
+        // PROMOTED PAWN = เบี้ยหน้า (เดินเหมือนเม็ด แต่ไม่เดินหน้า)
+        // ใช้ flag piece.promoted = true เพื่อบอกว่าเบี้ยนี้ข้ามฝั่งแล้ว
 
         const PIECE_ICONS = {
-            [PIECE_TYPES.PAWN]: 'fa-chess-pawn',
-            [PIECE_TYPES.ROOK]: 'fa-chess-rook',
+            [PIECE_TYPES.PAWN]:   'fa-chess-pawn',
+            [PIECE_TYPES.ROOK]:   'fa-chess-rook',
             [PIECE_TYPES.KNIGHT]: 'fa-chess-knight',
             [PIECE_TYPES.BISHOP]: 'fa-chess-bishop',
-            [PIECE_TYPES.QUEEN]: 'fa-chess-queen',
-            [PIECE_TYPES.KING]: 'fa-chess-king'
+            [PIECE_TYPES.QUEEN]:  'fa-chess-queen',
+            [PIECE_TYPES.KING]:   'fa-chess-king'
         };
 
-        // --- SVG SILHOUETTE PIECE RENDERERS (Action pose style) ---
-        function getPieceSVG(type, clan) {
+        const PIECE_NAMES = {
+            [PIECE_TYPES.PAWN]:   'เบี้ย',
+            [PIECE_TYPES.ROOK]:   'เรือ',
+            [PIECE_TYPES.KNIGHT]: 'ม้า',
+            [PIECE_TYPES.BISHOP]: 'โคน',
+            [PIECE_TYPES.QUEEN]:  'เม็ด',
+            [PIECE_TYPES.KING]:   'ขุน'
+        };
+
+        // --- SVG หมากรุกไทย (Silhouette style) ---
+        function getPieceSVG(type, clan, promoted) {
             const isRed = clan === CLANS.RED;
-            const fill = isRed ? '#dc2626' : '#1e293b';
-            const stroke = isRed ? '#7f1d1d' : '#0f172a';
+            const fill  = isRed ? '#dc2626' : '#1e293b';
+            const hi    = isRed ? '#fca5a5' : '#475569';  // highlight
+            const out   = isRed ? '#7f1d1d' : '#0f172a';  // outline
+
+            // เบี้ยหน้า (promoted) — พลิกหน้า วงกลมเล็กๆ บนยอด
+            if (type === PIECE_TYPES.PAWN && promoted) {
+                return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
+                  <circle cx="32" cy="8" r="5" fill="${hi}" stroke="${out}" stroke-width="1.5"/>
+                  <ellipse cx="32" cy="20" rx="8" ry="7" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <path d="M20 28 Q18 44 20 54 L44 54 Q46 44 44 28 Q38 25 32 25 Q26 25 20 28Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <path d="M20 36 Q32 40 44 36" stroke="${hi}" stroke-width="1" fill="none" opacity="0.5"/>
+                  <rect x="16" y="54" width="32" height="5" rx="2.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                </svg>`;
+            }
 
             const svgs = {
-
-                // RONIN — นั่งท่านักรบ ยกดาบเหนือหัว
-                pawn: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4))">
-                  <!-- ดาบ (ยกสูง เอียง) -->
-                  <line x1="42" y1="4" x2="22" y2="22" stroke="${fill}" stroke-width="2.2" stroke-linecap="round"/>
-                  <rect x="36" y="18" width="6" height="2" rx="1" fill="${fill}" transform="rotate(-45 39 19)"/>
-                  <!-- หัว + ผ้าโพก -->
-                  <ellipse cx="28" cy="16" rx="7" ry="7" fill="${fill}"/>
-                  <rect x="21" y="10" width="14" height="4" rx="2" fill="${fill}"/>
-                  <line x1="21" y1="12" x2="17" y2="8" stroke="${fill}" stroke-width="2.5" stroke-linecap="round"/>
-                  <!-- ลำตัว เอนไปข้างหน้า -->
-                  <path d="M22 22 Q16 30 18 38 Q22 36 28 35 Q32 33 34 28 Q30 24 22 22Z" fill="${fill}"/>
-                  <!-- แขนซ้าย ยกดาบ -->
-                  <path d="M22 22 L18 14 L22 12 L28 20" fill="${fill}"/>
-                  <!-- แขนขวา -->
-                  <path d="M30 25 L36 20 L38 23 L33 29" fill="${fill}"/>
-                  <!-- ขาขวา นั่งพับ -->
-                  <path d="M18 38 Q12 44 10 52 Q14 53 18 50 Q22 46 24 40" fill="${fill}"/>
-                  <!-- ขาซ้าย ยื่นออก -->
-                  <path d="M24 38 Q28 48 32 54 Q36 54 36 50 Q34 44 28 38" fill="${fill}"/>
-                  <!-- วงกลม enso เบาๆ -->
-                  <circle cx="32" cy="36" r="20" fill="none" stroke="${fill}" stroke-width="1" opacity="0.25"/>
+                // เบี้ย — ลำตัวเล็ก หัวกลม ฐานแคบ
+                pawn: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
+                  <ellipse cx="32" cy="14" rx="9" ry="9" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <path d="M23 23 Q20 36 22 46 L42 46 Q44 36 41 23 Q37 21 32 21 Q27 21 23 23Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <rect x="18" y="46" width="28" height="5" rx="2.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <rect x="14" y="51" width="36" height="5" rx="2.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
                 </svg>`,
 
-                // DAIMYO — ยืนท่วงท่า วงกลม ดาบสองมือ
-                rook: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4))">
-                  <!-- วงกลม enso -->
-                  <circle cx="32" cy="34" r="22" fill="none" stroke="${fill}" stroke-width="2.5" opacity="0.35"/>
-                  <!-- ดาบ (ยื่นเฉียง) -->
-                  <line x1="12" y1="14" x2="52" y2="44" stroke="${fill}" stroke-width="2.2" stroke-linecap="round"/>
-                  <rect x="14" y="12" width="7" height="2" rx="1" fill="${fill}" transform="rotate(34 17 13)"/>
-                  <!-- หัว -->
-                  <ellipse cx="32" cy="12" rx="6.5" ry="6.5" fill="${fill}"/>
-                  <!-- ลำตัวตั้งตรง จีวรยาว -->
-                  <path d="M26 18 Q22 28 22 38 Q22 50 32 52 Q42 50 42 38 Q42 28 38 18 Q35 16 32 16 Q29 16 26 18Z" fill="${fill}"/>
-                  <!-- แขนซ้าย กางออก จับดาบ -->
-                  <path d="M26 22 L14 30 L12 26 L24 18" fill="${fill}"/>
-                  <!-- แขนขวา -->
-                  <path d="M38 22 L50 30 L52 26 L40 18" fill="${fill}"/>
-                  <!-- ชายจีวร -->
-                  <path d="M22 42 L18 56 L24 56 L32 46 L40 56 L46 56 L42 42" fill="${fill}"/>
+                // เรือ — ยอดหยัก 3 แฉก ลำตัวสี่เหลี่ยม
+                rook: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
+                  <rect x="12" y="4"  width="9" height="12" rx="1.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <rect x="27" y="4"  width="10" height="12" rx="1.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <rect x="43" y="4"  width="9" height="12" rx="1.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <rect x="12" y="14" width="40" height="8"  rx="2" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <path d="M16 22 L14 50 L50 50 L48 22Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <rect x="10" y="50" width="44" height="7" rx="3" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
                 </svg>`,
 
-                // NINJA — ท่าต่อสู้ ยืนขาถ่าง แขนกาง
-                knight: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4))">
-                  <!-- ผ้าคาดหัว ปลายปลิว -->
-                  <path d="M38 6 Q44 8 48 6 L44 14 Q40 12 36 14 Z" fill="${fill}"/>
-                  <!-- หัว -->
-                  <ellipse cx="36" cy="14" rx="6" ry="6" fill="${fill}"/>
-                  <!-- ผ้าปิดปาก -->
-                  <rect x="30" y="16" width="12" height="4" rx="2" fill="${fill}"/>
-                  <!-- ลำตัวเอน -->
-                  <path d="M32 20 Q26 26 24 34 Q28 38 34 36 Q40 34 42 28 Q40 22 32 20Z" fill="${fill}"/>
-                  <!-- แขนซ้าย ยื่นออกไปข้างหน้า -->
-                  <path d="M32 24 L18 20 L16 24 L30 30" fill="${fill}"/>
-                  <!-- มือ/กำปั้น -->
-                  <circle cx="16" cy="22" r="3" fill="${fill}"/>
-                  <!-- แขนขวา ยืดไปหลัง -->
-                  <path d="M40 26 L54 22 L56 26 L42 32" fill="${fill}"/>
-                  <circle cx="56" cy="24" r="3" fill="${fill}"/>
-                  <!-- ขาซ้าย -->
-                  <path d="M24 34 Q16 42 12 52 L18 54 Q24 46 28 38" fill="${fill}"/>
-                  <!-- ขาขวา ถ่างออก -->
-                  <path d="M36 36 Q44 44 50 52 L44 54 Q40 46 34 40" fill="${fill}"/>
+                // ม้า — หัวม้าหันข้าง
+                knight: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
+                  <!-- คอ+หัวม้า -->
+                  <path d="M20 52 L18 36 Q16 24 20 16 Q24 8 32 6 Q38 4 42 8 Q46 12 44 18 Q42 22 38 22 Q36 22 34 24 Q32 26 32 30 L36 36 L38 42 L42 52Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <!-- หู -->
+                  <path d="M32 6 L28 2 L26 8" fill="${fill}" stroke="${out}" stroke-width="1.2"/>
+                  <!-- ตา -->
+                  <circle cx="38" cy="13" r="2.5" fill="${hi}" stroke="${out}" stroke-width="1"/>
+                  <!-- จมูก -->
+                  <circle cx="44" cy="20" r="1.5" fill="${hi}"/>
+                  <!-- ฐาน -->
+                  <rect x="14" y="52" width="36" height="6" rx="3" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
                 </svg>`,
 
-                // MONK — กลิ้งตัว ท่ากังฟู วงกลม
-                bishop: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4))">
-                  <!-- วงกลม enso -->
-                  <circle cx="32" cy="36" r="20" fill="none" stroke="${fill}" stroke-width="2.5" opacity="0.4"/>
-                  <!-- หัวโกน -->
-                  <ellipse cx="32" cy="14" rx="7" ry="7" fill="${fill}"/>
-                  <!-- ลำตัว เอนก้าวหน้า -->
-                  <path d="M28 20 Q20 26 18 34 Q22 40 30 40 Q36 38 40 32 Q38 24 28 20Z" fill="${fill}"/>
-                  <!-- แขนซ้าย ยืดออกข้าง -->
-                  <path d="M22 28 L8 24 L8 30 L20 34" fill="${fill}"/>
-                  <circle cx="8" cy="27" r="3.5" fill="${fill}"/>
-                  <!-- แขนขวา งอขึ้น -->
-                  <path d="M36 26 L46 16 L50 20 L40 30" fill="${fill}"/>
-                  <!-- ขาซ้าย เตะขึ้น -->
-                  <path d="M18 38 Q10 44 8 54 L14 54 Q18 46 22 40" fill="${fill}"/>
-                  <!-- ขาขวา ยืน -->
-                  <path d="M30 40 Q32 50 32 58 L38 58 Q38 50 36 40" fill="${fill}"/>
+                // โคน — ทรงเพรียว ยอดแหลม มีคอสลิม
+                bishop: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
+                  <!-- ยอด -->
+                  <ellipse cx="32" cy="7" rx="4" ry="5" fill="${hi}" stroke="${out}" stroke-width="1.5"/>
+                  <ellipse cx="32" cy="14" rx="7" ry="7" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <!-- คอ -->
+                  <rect x="28" y="20" width="8" height="5" rx="2" fill="${fill}" stroke="${out}" stroke-width="1"/>
+                  <!-- ลำตัว -->
+                  <path d="M18 25 Q16 40 18 52 L46 52 Q48 40 46 25 Q40 22 32 22 Q24 22 18 25Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <!-- แถบกลาง -->
+                  <path d="M20 38 Q32 42 44 38" stroke="${hi}" stroke-width="1.5" fill="none" opacity="0.5"/>
+                  <rect x="12" y="52" width="40" height="6" rx="3" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
                 </svg>`,
 
-                // SAMURAI — เต็มเกราะ สองดาบ ท่าพร้อมรบ
-                queen: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4))">
-                  <!-- ดาบขวา ยกข้างบน -->
-                  <line x1="46" y1="4" x2="34" y2="24" stroke="${fill}" stroke-width="2.2" stroke-linecap="round"/>
-                  <rect x="40" y="20" width="6" height="2" rx="1" fill="${fill}" transform="rotate(-60 43 21)"/>
-                  <!-- ดาบซ้าย ปักดิน -->
-                  <line x1="14" y1="58" x2="24" y2="36" stroke="${fill}" stroke-width="2.2" stroke-linecap="round"/>
-                  <!-- หมวก kabuto -->
-                  <path d="M24 8 Q24 2 32 2 Q40 2 40 8 L38 12 Q32 10 26 12 Z" fill="${fill}"/>
-                  <rect x="23" y="11" width="18" height="4" rx="2" fill="${fill}"/>
-                  <!-- เขาหมวก -->
-                  <path d="M24 8 L18 4 L22 10" fill="${fill}"/>
-                  <path d="M40 8 L46 4 L42 10" fill="${fill}"/>
-                  <!-- หัว -->
-                  <ellipse cx="32" cy="18" rx="7" ry="6" fill="${fill}"/>
-                  <!-- เกราะอก -->
-                  <path d="M24 24 Q18 34 20 44 Q26 48 32 48 Q38 48 44 44 Q46 34 40 24 Q36 22 32 22 Q28 22 24 24Z" fill="${fill}"/>
-                  <!-- แผ่นเกราะขวา -->
-                  <path d="M40 26 L50 22 L52 28 L44 34" fill="${fill}"/>
-                  <!-- แผ่นเกราะซ้าย -->
-                  <path d="M24 26 L14 22 L12 28 L20 34" fill="${fill}"/>
-                  <!-- กระโปรงเกราะ -->
-                  <path d="M20 44 L16 58 L24 58 L32 50 L40 58 L48 58 L44 44" fill="${fill}"/>
+                // เม็ด — ทรงผอม สูง มีวงแหวนรอบกลาง
+                queen: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
+                  <!-- ยอดทรงกลม -->
+                  <circle cx="32" cy="8" r="6" fill="${hi}" stroke="${out}" stroke-width="1.5"/>
+                  <!-- คอ -->
+                  <rect x="29" y="13" width="6" height="6" rx="2" fill="${fill}" stroke="${out}" stroke-width="1"/>
+                  <!-- ลำตัวสูง -->
+                  <path d="M20 19 Q17 36 18 52 L46 52 Q47 36 44 19 Q38 17 32 17 Q26 17 20 19Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <!-- วงแหวนกลาง -->
+                  <ellipse cx="32" cy="33" rx="14" ry="4" fill="none" stroke="${hi}" stroke-width="2" opacity="0.6"/>
+                  <!-- ฐาน -->
+                  <rect x="10" y="52" width="44" height="7" rx="3.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
                 </svg>`,
 
-                // SHOGUN — เกราะเต็มยศ ดาบสองมือ ท่าผู้นำ
-                king: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.4))">
-                  <!-- วงดวงอาทิตย์ด้านหลัง -->
-                  <circle cx="32" cy="30" r="22" fill="none" stroke="${fill}" stroke-width="1.5" opacity="0.3"/>
-                  <line x1="32" y1="6" x2="32" y2="2" stroke="${fill}" stroke-width="1.5" opacity="0.3"/>
-                  <line x1="46" y1="10" x2="49" y2="7" stroke="${fill}" stroke-width="1.5" opacity="0.3"/>
-                  <line x1="54" y1="24" x2="58" y2="24" stroke="${fill}" stroke-width="1.5" opacity="0.3"/>
-                  <line x1="18" y1="10" x2="15" y2="7" stroke="${fill}" stroke-width="1.5" opacity="0.3"/>
-                  <line x1="10" y1="24" x2="6" y2="24" stroke="${fill}" stroke-width="1.5" opacity="0.3"/>
-                  <!-- หมวก kabuto ใหญ่ -->
-                  <path d="M20 10 Q20 2 32 2 Q44 2 44 10 L42 15 Q32 12 22 15Z" fill="${fill}"/>
-                  <rect x="19" y="13" width="26" height="5" rx="2" fill="${fill}"/>
-                  <!-- เขาใหญ่ -->
-                  <path d="M20 10 L10 4 L16 12" fill="${fill}"/>
-                  <path d="M44 10 L54 4 L48 12" fill="${fill}"/>
-                  <!-- หัว -->
-                  <ellipse cx="32" cy="22" rx="8" ry="7" fill="${fill}"/>
-                  <!-- เกราะอกหนา -->
-                  <path d="M22 29 Q16 38 18 50 Q24 54 32 54 Q40 54 46 50 Q48 38 42 29 Q37 27 32 27 Q27 27 22 29Z" fill="${fill}"/>
-                  <!-- ไหล่เกราะขวา ใหญ่ -->
-                  <path d="M42 30 L56 24 L58 32 L46 40" fill="${fill}"/>
-                  <rect x="52" y="22" width="8" height="4" rx="1" fill="${fill}" transform="rotate(-20 56 24)"/>
-                  <!-- ไหล่เกราะซ้าย -->
-                  <path d="M22 30 L8 24 L6 32 L18 40" fill="${fill}"/>
-                  <rect x="4" y="22" width="8" height="4" rx="1" fill="${fill}" transform="rotate(20 8 24)"/>
-                  <!-- ดาบ ถืออยู่หน้าอก -->
-                  <line x1="32" y1="28" x2="32" y2="56" stroke="${fill}" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
-                  <rect x="26" y="36" width="12" height="2.5" rx="1" fill="${fill}"/>
-                  <!-- กระโปรงเกราะ -->
-                  <path d="M18 50 L14 62 L22 62 L32 56 L42 62 L50 62 L46 50" fill="${fill}"/>
+                // ขุน — มงกุฎ+ไม้กางเขน ลำตัวใหญ่ ฐานกว้าง
+                king: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
+                  <!-- ไม้กางเขนบน -->
+                  <rect x="29" y="2"  width="6"  height="14" rx="2" fill="${hi}" stroke="${out}" stroke-width="1.2"/>
+                  <rect x="24" y="6"  width="16" height="5"  rx="2" fill="${hi}" stroke="${out}" stroke-width="1.2"/>
+                  <!-- มงกุฎ -->
+                  <path d="M12 22 L16 12 L22 18 L32 10 L42 18 L48 12 L52 22Z" fill="${fill}" stroke="${out}" stroke-width="1.5" stroke-linejoin="round"/>
+                  <rect x="12" y="20" width="40" height="7" rx="2" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <!-- ลำตัว -->
+                  <path d="M14 27 L12 52 L52 52 L50 27Z" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
+                  <!-- ลายกลาง -->
+                  <rect x="26" y="32" width="12" height="10" rx="2" fill="${hi}" stroke="${out}" stroke-width="1" opacity="0.5"/>
+                  <!-- ฐาน -->
+                  <rect x="8"  y="52" width="48" height="7"  rx="3.5" fill="${fill}" stroke="${out}" stroke-width="1.5"/>
                 </svg>`
             };
             return svgs[type] || svgs.pawn;
         }
 
-        const PIECE_NAMES = {
-            [PIECE_TYPES.PAWN]: 'RONIN',
-            [PIECE_TYPES.ROOK]: 'DAIMYO',
-            [PIECE_TYPES.KNIGHT]: 'NINJA',
-            [PIECE_TYPES.BISHOP]: 'MONK',
-            [PIECE_TYPES.QUEEN]: 'SAMURAI',
-            [PIECE_TYPES.KING]: 'SHOGUN'
-        };
 
         // =============================================
         // *** วาง Google Apps Script Web App URL ตรงนี้ ***
@@ -1301,23 +1251,31 @@
         function initializeBoardState() {
             appState.board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-            // จัดกองทัพหมากรุก (RED: อยู่แถวล่าง 6, 7 / BLACK: อยู่แถวบน 0, 1)
-            
-            // 1. แถวพลทหาร (Ronin / Pawns)
+            // ตั้งหมากรุกไทย (กระดาน 8×8)
+            // แถว 0 = ฝั่งดำ (บน), แถว 7 = ฝั่งแดง (ล่าง)
+            // ฝั่งดำ: เดินลง (dir=+1), ฝั่งแดง: เดินขึ้น (dir=-1)
+
+            // แถวหน้า — เบี้ย 8 ตัว
             for (let col = 0; col < 8; col++) {
-                appState.board[1][col] = { type: PIECE_TYPES.PAWN, clan: CLANS.BLACK };
-                appState.board[6][col] = { type: PIECE_TYPES.PAWN, clan: CLANS.RED };
+                appState.board[2][col] = { type: PIECE_TYPES.PAWN, clan: CLANS.BLACK, promoted: false };
+                appState.board[5][col] = { type: PIECE_TYPES.PAWN, clan: CLANS.RED,   promoted: false };
             }
 
-            // 2. กองทหารหลัก (Backrows)
-            const backRowPattern = [
+            // แถวหลัง — เรือ ม้า โคน เม็ด ขุน โคน ม้า เรือ
+            // หมากรุกไทย: ขุนอยู่ซ้าย เม็ดอยู่ขวา (มองจากฝั่งตัวเอง)
+            // ฝั่งดำ (บน): col 0=เรือ 1=ม้า 2=โคน 3=ขุน 4=เม็ด 5=โคน 6=ม้า 7=เรือ
+            // ฝั่งแดง (ล่าง): ขุนด้านขวา เม็ดด้านซ้าย (กระจก)
+            const blackBack = [
+                PIECE_TYPES.ROOK, PIECE_TYPES.KNIGHT, PIECE_TYPES.BISHOP, PIECE_TYPES.KING,
+                PIECE_TYPES.QUEEN, PIECE_TYPES.BISHOP, PIECE_TYPES.KNIGHT, PIECE_TYPES.ROOK
+            ];
+            const redBack = [
                 PIECE_TYPES.ROOK, PIECE_TYPES.KNIGHT, PIECE_TYPES.BISHOP, PIECE_TYPES.QUEEN,
                 PIECE_TYPES.KING, PIECE_TYPES.BISHOP, PIECE_TYPES.KNIGHT, PIECE_TYPES.ROOK
             ];
-
             for (let col = 0; col < 8; col++) {
-                appState.board[0][col] = { type: backRowPattern[col], clan: CLANS.BLACK };
-                appState.board[7][col] = { type: backRowPattern[col], clan: CLANS.RED };
+                appState.board[0][col] = { type: blackBack[col], clan: CLANS.BLACK, promoted: false };
+                appState.board[7][col] = { type: redBack[col],   clan: CLANS.RED,   promoted: false };
             }
         }
 
@@ -1361,11 +1319,11 @@
                         // SVG การ์ตูน
                         const svgWrap = document.createElement('div');
                         svgWrap.style.cssText = 'width:72%;height:72%;';
-                        svgWrap.innerHTML = getPieceSVG(piece.type, piece.clan);
+                        svgWrap.innerHTML = getPieceSVG(piece.type, piece.clan, piece.promoted);
 
                         const textName = document.createElement('span');
                         textName.className = 'piece-name';
-                        textName.textContent = PIECE_NAMES[piece.type];
+                        textName.textContent = (piece.type === PIECE_TYPES.PAWN && piece.promoted) ? 'หน้า' : PIECE_NAMES[piece.type];
 
                         pieceDiv.appendChild(svgWrap);
                         pieceDiv.appendChild(textName);
@@ -1426,20 +1384,24 @@
                     appState.capturedPieces.red.push(targetPiece.type);
                     addCapturedPieceUI(CLANS.RED, targetPiece.type);
                 }
-                addGameLog(`⚔️ กองทัพ ${piece.clan === CLANS.RED ? 'สีแดง' : 'สีดำ'} ขับเคลื่อน ${PIECE_NAMES[piece.type]} บุกปลิดชีพ ${PIECE_NAMES[targetPiece.type]} ของศัตรู!`);
+                addGameLog(`⚔️ ${piece.clan === CLANS.RED ? 'แดง' : 'ดำ'} กิน${PIECE_NAMES[targetPiece.type]}${targetPiece.promoted?'หน้า':''} ของฝ่ายตรงข้าม!`);
             } else {
-                addGameLog(`🏃 กองทัพ ${piece.clan === CLANS.RED ? 'สีแดง' : 'สีดำ'} เดินทัพ ${PIECE_NAMES[piece.type]} ไปยังพิกัด [แถว ${toRow+1}, หลัก ${toCol+1}]`);
+                addGameLog(`🏃 ${piece.clan === CLANS.RED ? 'แดง' : 'ดำ'} เดิน${PIECE_NAMES[piece.type]}${piece.promoted?'หน้า':''} ไปพิกัด [แถว ${toRow+1}, หลัก ${toCol+1}]`);
             }
 
             // 2. ย้ายหมากใน State
             appState.board[toRow][toCol] = piece;
             appState.board[fromRow][fromCol] = null;
 
-            // 3. กฎพิเศษ: การเลื่อนยศพลทหาร (Pawn Promotion)
-            if (piece.type === PIECE_TYPES.PAWN) {
-                if ((piece.clan === CLANS.RED && toRow === 0) || (piece.clan === CLANS.BLACK && toRow === 7)) {
-                    appState.board[toRow][toCol].type = PIECE_TYPES.QUEEN; // กลายเป็นขุนนางซามูไรผู้เก่งฉกาจ
-                    addGameLog("👑 พลทหารกล้าได้เลื่อนขั้นยศกลายเป็น 'แม่ทัพซามูไร (SAMURAI)'!");
+            // 3. กฎพิเศษ: เบี้ยข้ามฝั่งกลายเป็นเบี้ยหน้า
+            if (piece.type === PIECE_TYPES.PAWN && !piece.promoted) {
+                // แดง: ข้ามฝั่งเมื่อถึงแถว 0-2 (แถวหน้าของดำ), ดำ: แถว 5-7
+                const promotionZone = clan === CLANS.RED
+                    ? toRow <= 2   // ฝั่งดำ
+                    : toRow >= 5;  // ฝั่งแดง
+                if (promotionZone) {
+                    appState.board[toRow][toCol].promoted = true;
+                    addGameLog(`👑 เบี้ยข้ามฝั่งกลายเป็น 'เบี้ยหน้า' เดินได้แบบเม็ด!`);
                 }
             }
 
@@ -1476,19 +1438,18 @@
 
             if (appState.currentGameMode === 'ONLINE') {
                 if (winnerClan === appState.onlineRole) {
-                    winText = `ขอสรรเสริญ! ท่านพิชิตชัยเหนือสมรภูมิออนไลน์ ทัพ ${appState.playerName} มีชัยชนะเหนือตระกูล!`;
+                    winText = `ฝ่ายคุณชนะ! จับขุนฝ่ายตรงข้ามได้สำเร็จ!`;
                     resultKey = "win";
                 } else {
-                    winText = `ความพ่ายแพ้อันขมขื่นในสนามรบ คาตานะของท่านถูกโค่นทำลายแล้ว`;
+                    winText = `ขุนของคุณถูกจับ... พ่ายแพ้ในสนามรบ`;
                     resultKey = "lose";
                 }
             } else {
-                // เล่นกับ AI
                 if (winnerClan === CLANS.RED) {
-                    winText = `ท่านชนะขุนพลคอมพิวเตอร์ AI อย่างยิ่งใหญ่!`;
+                    winText = `ยอดเยี่ยม! คุณจับขุนของ AI ได้สำเร็จ!`;
                     resultKey = "win";
                 } else {
-                    winText = `กองทัพ AI ได้ทำการบุกพิชิตโชกุนสีแดงพ่ายแพ้เละเทะ!`;
+                    winText = `AI จับขุนของคุณได้แล้ว... ลองใหม่อีกครั้ง!`;
                     resultKey = "lose";
                 }
             }
@@ -1536,84 +1497,84 @@
             if (!piece) return [];
 
             const moves = [];
-            const clan = piece.clan;
-            const dir = clan === CLANS.RED ? -1 : 1; // ทิศทางการเดินหน้าพลทหาร
+            const clan  = piece.clan;
+            // ทิศหน้าของแต่ละฝ่าย: แดงเดินขึ้น (dir=-1), ดำเดินลง (dir=+1)
+            const dir   = clan === CLANS.RED ? -1 : 1;
+
+            const inBounds = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+            const canLand  = (r, c) => {
+                if (!inBounds(r, c)) return false;
+                const t = appState.board[r][c];
+                return !t || t.clan !== clan;
+            };
+            const isEmpty  = (r, c) => inBounds(r, c) && !appState.board[r][c];
 
             switch (piece.type) {
+
                 case PIECE_TYPES.PAWN:
-                    // เดินไปข้างหน้า 1 ช่อง
-                    const nextRow = row + dir;
-                    if (nextRow >= 0 && nextRow < 8 && !appState.board[nextRow][col]) {
-                        moves.push({ row: nextRow, col });
-                        // เดิน 2 ช่องตาแรก
-                        const doubleRow = row + (dir * 2);
-                        const isStartRow = (clan === CLANS.RED && row === 6) || (clan === CLANS.BLACK && row === 1);
-                        if (isStartRow && !appState.board[doubleRow][col]) {
-                            moves.push({ row: doubleRow, col });
-                        }
+                    if (piece.promoted) {
+                        // เบี้ยหน้า: เดินเหมือนเม็ด (ทะแยง 4 ทิศ + หน้า 1)
+                        // แต่ไม่เดินถอยหลัง
+                        const queenLikeDirs = [
+                            [dir,  0],  // หน้า
+                            [dir, -1],  // หน้าซ้าย
+                            [dir,  1],  // หน้าขวา
+                            [0,  -1],   // ซ้าย
+                            [0,   1],   // ขวา
+                            [-dir,-1],  // ทะแยงหลังซ้าย
+                            [-dir, 1],  // ทะแยงหลังขวา
+                        ];
+                        queenLikeDirs.forEach(([dr, dc]) => {
+                            const r = row + dr, c = col + dc;
+                            if (canLand(r, c)) moves.push({ row: r, col: c });
+                        });
+                    } else {
+                        // เบี้ยปกติ: เดินหน้า 1 ช่อง
+                        const front = row + dir;
+                        if (isEmpty(front, col))   moves.push({ row: front, col });
+                        // กินทะแยง
+                        [-1, 1].forEach(dc => {
+                            const c = col + dc;
+                            if (inBounds(front, c)) {
+                                const t = appState.board[front][c];
+                                if (t && t.clan !== clan) moves.push({ row: front, col: c });
+                            }
+                        });
+                        // หมายเหตุ: เบี้ยไทยไม่เดิน 2 ช่องตาแรก
                     }
-                    // การกินทะแยงมุม
-                    const diagCols = [col - 1, col + 1];
-                    diagCols.forEach(dCol => {
-                        if (dCol >= 0 && dCol < 8 && nextRow >= 0 && nextRow < 8) {
-                            const diagPiece = appState.board[nextRow][dCol];
-                            if (diagPiece && diagPiece.clan !== clan) {
-                                moves.push({ row: nextRow, col: dCol });
-                            }
-                        }
+                    break;
+
+                case PIECE_TYPES.ROOK: // เรือ — เดินตรงไม่จำกัดช่อง
+                    addSlidingMoves(moves, row, col, [[-1,0],[1,0],[0,-1],[0,1]], clan);
+                    break;
+
+                case PIECE_TYPES.KNIGHT: // ม้า — กระโดด L (2+1) ไม่ข้ามหมาก
+                    // ม้าไทยกระโดดแบบเดียวกับ chess สากล แต่ตรวจว่าช่องกลางว่างหรือไม่
+                    // (บางตำรา: ม้าไทยถูกบังได้ แต่ standard ปัจจุบันไม่บัง — ใช้แบบ standard)
+                    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc]) => {
+                        const r = row+dr, c = col+dc;
+                        if (canLand(r, c)) moves.push({ row: r, col: c });
                     });
                     break;
 
-                case PIECE_TYPES.KNIGHT: // Ninja (ข้ามหมากตัวอื่นได้)
-                    const ninjaOffsets = [
-                        [-2, -1], [-2, 1], [-1, -2], [-1, 2],
-                        [1, -2], [1, 2], [2, -1], [2, 1]
-                    ];
-                    ninjaOffsets.forEach(([rOff, cOff]) => {
-                        const targetRow = row + rOff;
-                        const targetCol = col + cOff;
-                        if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8) {
-                            const target = appState.board[targetRow][targetCol];
-                            if (!target || target.clan !== clan) {
-                                moves.push({ row: targetRow, col: targetCol });
-                            }
-                        }
+                case PIECE_TYPES.BISHOP: // โคน — เดินทะแยงไม่จำกัดช่อง
+                    addSlidingMoves(moves, row, col, [[-1,-1],[-1,1],[1,-1],[1,1]], clan);
+                    break;
+
+                case PIECE_TYPES.QUEEN: // เม็ด — เดินทะแยง 1 ช่อง + ข้างหน้า 1 ช่อง
+                    [[dir,0],[dir,-1],[dir,1],[-dir,-1],[-dir,1],[0,-1],[0,1]].forEach(([dr,dc]) => {
+                        const r = row+dr, c = col+dc;
+                        if (canLand(r, c)) moves.push({ row: r, col: c });
                     });
                     break;
 
-                case PIECE_TYPES.ROOK: // Daimyo
-                    addSlidingMoves(moves, row, col, [[-1, 0], [1, 0], [0, -1], [0, 1]], clan);
-                    break;
-
-                case PIECE_TYPES.BISHOP: // Monk
-                    addSlidingMoves(moves, row, col, [[-1, -1], [-1, 1], [1, -1], [1, 1]], clan);
-                    break;
-
-                case PIECE_TYPES.QUEEN: // Samurai
-                    addSlidingMoves(moves, row, col, [
-                        [-1, 0], [1, 0], [0, -1], [0, 1],
-                        [-1, -1], [-1, 1], [1, -1], [1, 1]
-                    ], clan);
-                    break;
-
-                case PIECE_TYPES.KING: // Shogun
-                    const kingDirs = [
-                        [-1, 0], [1, 0], [0, -1], [0, 1],
-                        [-1, -1], [-1, 1], [1, -1], [1, 1]
-                    ];
-                    kingDirs.forEach(([rOff, cOff]) => {
-                        const targetRow = row + rOff;
-                        const targetCol = col + cOff;
-                        if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8) {
-                            const target = appState.board[targetRow][targetCol];
-                            if (!target || target.clan !== clan) {
-                                moves.push({ row: targetRow, col: targetCol });
-                            }
-                        }
+                case PIECE_TYPES.KING: // ขุน — เดิน 1 ช่องรอบทิศ 8 ทิศ
+                    [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr,dc]) => {
+                        const r = row+dr, c = col+dc;
+                        if (canLand(r, c)) moves.push({ row: r, col: c });
                     });
                     break;
             }
-
             return moves;
         }
 
@@ -1681,22 +1642,27 @@
             let score = 0;
             const targetPiece = appState.board[toRow][toCol];
 
-            // 1. ให้ความสำคัญสูงสุดในการกำจัดหมากเป้าหมาย
             if (targetPiece) {
+                // ค่าหมากรุกไทย: เรือ>ม้า=โคน>เม็ด>เบี้ยหน้า>เบี้ย
                 const values = {
-                    [PIECE_TYPES.PAWN]: 10,
-                    [PIECE_TYPES.KNIGHT]: 30,
+                    [PIECE_TYPES.PAWN]:   targetPiece.promoted ? 15 : 5,
                     [PIECE_TYPES.BISHOP]: 30,
-                    [PIECE_TYPES.ROOK]: 50,
-                    [PIECE_TYPES.QUEEN]: 90,
-                    [PIECE_TYPES.KING]: 10000 // จับตัวโชกุนคือชนะสูงสุด
+                    [PIECE_TYPES.KNIGHT]: 30,
+                    [PIECE_TYPES.ROOK]:   60,
+                    [PIECE_TYPES.QUEEN]:  20,
+                    [PIECE_TYPES.KING]:   10000
                 };
-                score += values[targetPiece.type] * 2;
+                score += (values[targetPiece.type] || 0) * 2;
             }
 
-            // 2. การควบคุมส่วนกลางกระดาน
-            if (toRow >= 3 && toRow <= 4 && toCol >= 3 && toCol <= 4) {
-                score += 5;
+            // ควบคุมกลางกระดาน
+            if (toRow >= 3 && toRow <= 4 && toCol >= 3 && toCol <= 4) score += 5;
+
+            // เบี้ยบุกข้ามฝั่ง
+            const piece = appState.board[fromRow][fromCol];
+            if (piece && piece.type === PIECE_TYPES.PAWN && !piece.promoted) {
+                const inZone = piece.clan === CLANS.BLACK ? toRow >= 5 : toRow <= 2;
+                if (inZone) score += 25;
             }
 
             return score;
