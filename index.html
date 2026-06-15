@@ -789,7 +789,7 @@
         // *** วาง Google Apps Script Web App URL ตรงนี้ ***
         // URL เดียวใช้ทั้ง Auth + Leaderboard + Rooms
         // =============================================
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwVpgOOMnQrZK6fRWFumPeqmu4G1uQm6DS6KsLaEvZKloImgCPy22VxZ68cOOIEHcGmzQ/exec';
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwqlgPl8Fdr2X9Bjp578d_lmSWrFSe9LzAI4QezgGgTkeWA7Nbt10YcQ0-SxPud87TOnw/exec';
         // ตัวอย่าง: 'https://script.google.com/macros/s/AKfycbz.../exec'
 
         function gasReady() {
@@ -898,7 +898,10 @@
             gameActive: false,
             timerInterval: null,
             secondsElapsed: 0,
-            onlineRooms: []
+            onlineRooms: [],
+            onlineVersion: 0,
+            pollTimer: null,
+            _drawPromptShown: false
         };
 
         // --- INIT APP ---
@@ -1196,42 +1199,107 @@
                 try {
                     const res = await gasCall({ action: 'createRoom', creator: appState.playerName, roomCode });
                     appState.currentRoomId = res.roomId;
+                    appState.onlineVersion = 0;
                     showNotification("ตั้งห้องสำเร็จ", `ห้องหมายเลข #${roomCode} เปิดแล้ว รอผู้เล่นสีดำ...`);
                     setupGame('คุณ (เจ้าบ้าน)', 'รอผู้ท้าชิง...');
+                    appState.gameActive = false; // รอ opponent ก่อนเริ่ม
                     addGameLog(`ห้อง #${roomCode} ถูกสร้างแล้ว กำลังรอผู้เล่นสีดำเข้าร่วม...`);
-                    // poll รอ opponent
-                    pollForOpponent(res.roomId);
+                    startRoomPolling();
                 } catch(e) {
                     showNotification("ผิดพลาด", "ไม่สามารถสร้างห้องได้: " + e.message, true);
                 }
             } else {
-                appState.currentRoomId = roomCode;
-                showNotification("โหมด offline", `ห้อง #${roomCode} — ตั้งค่า GAS_API_URL เพื่อให้ผู้อื่นเข้าร่วมได้จริง`);
-                setupGame('คุณ (เจ้าบ้าน)', 'ผู้เล่นออนไลน์ (จำลอง)');
-                addGameLog("⚠️ โหมด offline — ไม่มีการเชื่อมต่อ GAS");
-                setTimeout(() => {
-                    const n = "ซามูไรจำลอง_" + Math.floor(10+Math.random()*90);
-                    document.getElementById('opponent-name-text').textContent = n;
-                    addGameLog(`${n} เข้าร่วม (จำลอง)`); appState.gameActive = true;
-                }, 2000);
+                showNotification("ไม่พร้อมใช้งาน", "ยังไม่ได้ตั้งค่า GAS_API_URL — ระบบออนไลน์ใช้งานไม่ได้", true);
             }
         }
 
-        async function pollForOpponent(roomId) {
-            const check = async () => {
-                try {
-                    const res = await gasCall({ action: 'getRoom', roomId });
-                    if (res.room && res.room.opponent && res.room.status === 'playing') {
-                        const oppName = res.room.opponent;
-                        document.getElementById('opponent-name-text').textContent = oppName;
-                        addGameLog(`⚔️ นักรบ ${oppName} เข้าร่วมห้องแล้ว! เริ่มสงคราม!`);
-                        appState.gameActive = true;
-                        return;
+        // ---- ONLINE ROOM POLLING (sync board state ผ่าน GAS) ----
+        function startRoomPolling() {
+            stopRoomPolling();
+            appState.pollTimer = setInterval(pollRoomState, 2500);
+            pollRoomState(); // เช็คทันทีครั้งแรก
+        }
+        function stopRoomPolling() {
+            if (appState.pollTimer) { clearInterval(appState.pollTimer); appState.pollTimer = null; }
+        }
+
+        async function pollRoomState() {
+            if (appState.currentGameMode !== 'ONLINE' || !appState.currentRoomId) { stopRoomPolling(); return; }
+            try {
+                const res = await gasCall({ action: 'syncRoom', roomId: appState.currentRoomId });
+                if (!res.success || !res.room) return;
+                const room = res.room;
+
+                // 1. ผู้เล่นเข้าร่วมห้องแล้ว (สำหรับเจ้าบ้านที่รออยู่)
+                if (!appState.gameActive && room.status === 'playing' && room.opponent) {
+                    document.getElementById('opponent-name-text').textContent = room.opponent;
+                    addGameLog(`⚔️ นักรบ ${room.opponent} เข้าร่วมห้องแล้ว! เริ่มสงคราม!`);
+                    appState.gameActive = true;
+                    if (room.board) {
+                        appState.board = room.board;
+                        appState.currentTurn = room.turn === 'black' ? CLANS.BLACK : CLANS.RED;
+                        appState.onlineVersion = room.version || 0;
+                        renderBoardGrid();
+                        updateTurnIndicator();
                     }
-                } catch(e) {}
-                if (appState.gameActive === false) setTimeout(check, 3000);
-            };
-            setTimeout(check, 3000);
+                }
+
+                // 2. ฝ่ายตรงข้ามเดินหมาก (version เปลี่ยน)
+                if (room.version > (appState.onlineVersion || 0) && room.board) {
+                    appState.onlineVersion = room.version;
+                    appState.board = room.board;
+                    appState.currentTurn = room.turn === 'black' ? CLANS.BLACK : CLANS.RED;
+                    appState.selectedSquare = null;
+                    appState.validMoves = [];
+                    renderBoardGrid();
+                    updateTurnIndicator();
+                    if (room.lastMove) {
+                        const lm = room.lastMove;
+                        const moverClan = lm.clan === 'red' ? 'แดง' : 'ดำ';
+                        addGameLog(`📡 ${moverClan} เดิน${PIECE_NAMES[lm.type] || ''} ไปพิกัด [แถว ${lm.toRow+1}, หลัก ${lm.toCol+1}]`);
+                    }
+                }
+
+                // 3. เสนอเสมอจากฝ่ายตรงข้าม
+                if (room.drawOffer && room.drawOffer !== appState.playerName && room.status === 'playing') {
+                    if (!appState._drawPromptShown) {
+                        appState._drawPromptShown = true;
+                        const accept = confirm(`${room.drawOffer} เสนอขอเสมอ — ยอมรับหรือไม่?`);
+                        await gasCall({ action: 'offerDraw', roomId: appState.currentRoomId, accept });
+                        if (accept) {
+                            appState.gameActive = false;
+                            clearInterval(appState.timerInterval);
+                            stopRoomPolling();
+                            addGameLog("🤝 ทั้งสองฝ่ายตกลงเสมอกัน!");
+                            submitScoreToGoogleSheet("draw");
+                            showNotification("เสมอ", "ทั้งสองฝ่ายตกลงเสมอกันแล้ว");
+                        }
+                        appState._drawPromptShown = false;
+                    }
+                }
+
+                // 4. เกมจบแล้ว (อีกฝ่ายยอมแพ้/แพ้/เสมอ)
+                if (room.status === 'finished' && appState.gameActive) {
+                    appState.gameActive = false;
+                    clearInterval(appState.timerInterval);
+                    stopRoomPolling();
+                    if (room.winner === 'draw') {
+                        addGameLog("🤝 เกมจบลงด้วยการเสมอ");
+                        submitScoreToGoogleSheet("draw");
+                        showNotification("เสมอ", "เกมจบลงด้วยการเสมอ");
+                    } else if (room.winner === appState.onlineRole) {
+                        addGameLog("🏆 คุณชนะ! ฝ่ายตรงข้ามยอมแพ้หรือถูกจับขุน");
+                        submitScoreToGoogleSheet("win");
+                        showNotification("ผลศึกเสร็จสิ้น", "ฝ่ายคุณชนะ! ชัยชนะเป็นของท่าน!");
+                    } else {
+                        addGameLog("💀 คุณแพ้การต่อสู้ครั้งนี้");
+                        submitScoreToGoogleSheet("lose");
+                        showNotification("ผลศึกเสร็จสิ้น", "คุณพ่ายแพ้ในสนามรบ...", true);
+                    }
+                }
+            } catch(e) {
+                console.error('pollRoomState error:', e);
+            }
         }
 
         function showJoinRoomModal() {
@@ -1257,18 +1325,66 @@
             appState.currentRoomId = roomId;
             appState.currentGameMode = 'ONLINE';
             appState.onlineRole = 'black';
-            if (gasReady()) {
-                try {
-                    await gasCall({ action: 'joinRoom', roomId, opponent: appState.playerName });
-                } catch(e) { console.error('joinRoom failed:', e); }
+
+            if (!gasReady()) {
+                showNotification("ไม่พร้อมใช้งาน", "ยังไม่ได้ตั้งค่า GAS_API_URL — ระบบออนไลน์ใช้งานไม่ได้", true);
+                return;
             }
-            showNotification("เข้าร่วมแล้ว", `เข้าสู่สมรภูมิของ ${creatorName} แล้ว!`);
-            setupGame(appState.playerName, creatorName);
-            addGameLog(`⚔️ คุณเข้าร่วมห้องของ ${creatorName} แล้ว — ฝ่ายสีดำเดินหมาก`);
-            appState.gameActive = true;
+
+            try {
+                // เตรียมกระดานเริ่มต้น (ผู้เข้าร่วมเป็นคนสร้าง initial board ให้ห้อง)
+                initializeBoardState();
+                const initialBoard = appState.board;
+
+                await gasCall({ action: 'joinRoom', roomId, opponent: appState.playerName, initialBoard });
+
+                showNotification("เข้าร่วมแล้ว", `เข้าสู่สมรภูมิของ ${creatorName} แล้ว!`);
+                setupGameOnline(appState.playerName, creatorName, initialBoard);
+                addGameLog(`⚔️ คุณเข้าร่วมห้องของ ${creatorName} แล้ว — ฝ่ายสีดำเดินหมาก`);
+                appState.gameActive = true;
+                appState.onlineVersion = 1;
+                startRoomPolling();
+            } catch(e) {
+                showNotification("ผิดพลาด", "เข้าร่วมห้องไม่สำเร็จ: " + e.message, true);
+            }
+        }
+
+        // ตั้งค่าหน้าจอเกมสำหรับผู้เข้าร่วม (ไม่ reset board เพราะเซ็ตไว้แล้ว)
+        function setupGameOnline(pName, oppName, board) {
+            showScreen('screen-game');
+            document.getElementById('player-name-text').textContent = pName;
+            document.getElementById('opponent-name-text').textContent = oppName;
+
+            const badge = document.getElementById('game-room-id-badge');
+            badge.textContent = `ONLINE | ห้อง: ${appState.currentRoomId}`;
+            document.getElementById('multiplayer-chat-box').classList.remove('hidden');
+
+            appState.currentTurn = CLANS.RED;
+            appState.selectedSquare = null;
+            appState.validMoves = [];
+            appState.capturedPieces = { red: [], black: [] };
+
+            document.getElementById('captured-by-red').innerHTML = '';
+            document.getElementById('captured-by-black').innerHTML = '';
+            document.getElementById('game-logs').innerHTML = '<p class="text-zinc-500">กระดานรบเปิดฉากแล้ว สงครามเริ่มขึ้น!</p>';
+
+            clearInterval(appState.timerInterval);
+            appState.secondsElapsed = 0;
+            updateTimerDisplay();
+            appState.timerInterval = setInterval(() => {
+                if (appState.gameActive) {
+                    appState.secondsElapsed++;
+                    updateTimerDisplay();
+                }
+            }, 1000);
+
+            appState.board = board;
+            renderBoardGrid();
+            updateTurnIndicator();
         }
 
         function startAiGame() {
+            stopRoomPolling();
             appState.currentGameMode = 'AI';
             appState.currentRoomId = null;
             appState.onlineRole = 'red'; // เล่นสู้กับคอมพิวเตอร์แบบปกติ
@@ -1493,26 +1609,61 @@
             }
 
             // 4. สรรหาชัยชนะ: หากสามารถล้มโชกุน (King) ได้
-            if (targetPiece && targetPiece.type === PIECE_TYPES.KING) {
-                endChessGame(piece.clan);
-                return;
-            }
+            const isCheckmate = targetPiece && targetPiece.type === PIECE_TYPES.KING;
 
             // 5. สลับตาเดิน
             appState.currentTurn = appState.currentTurn === CLANS.RED ? CLANS.BLACK : CLANS.RED;
             appState.selectedSquare = null;
             appState.validMoves = [];
-            
+
             renderBoardGrid();
             updateTurnIndicator();
+
+            if (isCheckmate) {
+                if (appState.currentGameMode === 'ONLINE') {
+                    syncMoveToServer(piece, toRow, toCol, piece.clan);
+                }
+                endChessGame(piece.clan);
+                return;
+            }
 
             // 6. เล่นกับ AI หากเป็นตาเดินของ AI
             if (appState.gameActive && appState.currentGameMode === 'AI' && appState.currentTurn === CLANS.BLACK) {
                 setTimeout(makeAiMove, 800); // ดีเลย์สั้นๆ เพื่อให้การเล่นสมจริง
             }
-            // หากเป็นโหมดออนไลน์ สุ่มการสลับให้ฝั่งตรงข้ามตอบสนองในการดวลออนไลน์ใน 2 วินาทีถัดไป
-            else if (appState.gameActive && appState.currentGameMode === 'ONLINE' && appState.currentTurn !== appState.onlineRole) {
-                setTimeout(makeOnlineSimulatedMove, 2000);
+            // 7. โหมดออนไลน์ — ส่ง board state ใหม่ขึ้น GAS ให้ฝ่ายตรงข้ามดึงไปแสดง
+            else if (appState.currentGameMode === 'ONLINE') {
+                syncMoveToServer(piece, toRow, toCol, isCheckmate ? piece.clan : null);
+            }
+        }
+
+        // ส่ง board state ปัจจุบันขึ้น GAS หลังเดินหมาก (โหมดออนไลน์)
+        async function syncMoveToServer(piece, toRow, toCol, winnerClan) {
+            if (!gasReady() || !appState.currentRoomId) return;
+            try {
+                const lastMove = {
+                    clan: piece.clan === CLANS.RED ? 'red' : 'black',
+                    type: piece.type, toRow, toCol
+                };
+                const res = await gasCall({
+                    action: 'makeMove',
+                    roomId: appState.currentRoomId,
+                    board: appState.board,
+                    turn: appState.currentTurn === CLANS.RED ? 'red' : 'black',
+                    lastMove,
+                    version: appState.onlineVersion || 0,
+                    winner: winnerClan ? (winnerClan === CLANS.RED ? 'red' : 'black') : null
+                });
+                if (res.success) {
+                    appState.onlineVersion = res.version;
+                } else if (res.error === 'VERSION_CONFLICT') {
+                    // อีกฝ่ายเดินมาก่อน — sync รอบใหม่ทันที
+                    showNotification("ซิงค์ข้อมูล", "กำลังอัปเดตกระดานจากเซิร์ฟเวอร์...");
+                    await pollRoomState();
+                }
+            } catch(e) {
+                console.error('syncMoveToServer error:', e);
+                showNotification("ผิดพลาด", "ไม่สามารถส่งการเดินหมากไปยังเซิร์ฟเวอร์ได้", true);
             }
         }
 
@@ -1531,6 +1682,8 @@
                     winText = `ขุนของคุณถูกจับ... พ่ายแพ้ในสนามรบ`;
                     resultKey = "lose";
                 }
+                stopRoomPolling();
+                // อัปเดตสถานะห้องเป็น finished พร้อมผู้ชนะ (board ถูกส่งไปแล้วใน syncMoveToServer)
             } else {
                 if (winnerClan === CLANS.RED) {
                     winText = `ยอดเยี่ยม! คุณจับขุนของ AI ได้สำเร็จ!`;
@@ -1755,95 +1908,80 @@
             return score;
         }
 
-        // --- ONLINE SIMULATOR MULTIPLAYER RESPONSES ---
-        // ระบบจำลองการดวลแบบเสมือนจริงของฝ่ายตรงข้ามออนไลน์ผ่าน AI Algorithm ที่แชร์ข้อมูลห้องรบ
-        function makeOnlineSimulatedMove() {
-            if (!appState.gameActive) return;
-
-            let allLegalMoves = [];
-            const oppositeClan = appState.onlineRole === CLANS.RED ? CLANS.BLACK : CLANS.RED;
-
-            for (let row = 0; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
-                    const piece = appState.board[row][col];
-                    if (piece && piece.clan === oppositeClan) {
-                        const moves = calculateValidMoves(row, col);
-                        moves.forEach(m => {
-                            allLegalMoves.push({
-                                from: { row, col },
-                                to: m,
-                                piece,
-                                priority: evaluateMovePriority(row, col, m.row, m.col)
-                            });
-                        });
-                    }
-                }
-            }
-
-            if (allLegalMoves.length === 0) {
-                endChessGame(appState.onlineRole);
-                return;
-            }
-
-            allLegalMoves.sort((a, b) => b.priority - a.priority);
-            const chosen = allLegalMoves[0]; // ฝั่งออนไลน์จะเล่นแบบเฉียบขาดที่สุด
-
-            executePieceMove(chosen.from.row, chosen.from.col, chosen.to.row, chosen.to.col);
-        }
-
-        // --- CHAT & BUTTON COMMANDS ---
+        // --- CHAT & BUTTON COMMANDS (ONLINE) ---
         function sendQuickChat(message) {
             addGameLog(`💬 คุณ: "${message}"`);
-            
-            // ฝ่ายตรงข้ามจำลองตอบรับอย่างรวดเร็ว
-            setTimeout(() => {
-                const responses = [
-                    "ยอดเยี่ยมมาก!",
-                    "เป็นคำแนะนำที่เยี่ยม!",
-                    "ระวังตัวไว้ด้วยล่ะ!",
-                    "สนามรบตึงมือจริง!"
-                ];
-                const reply = responses[Math.floor(Math.random() * responses.length)];
-                const oppName = document.getElementById('opponent-name-text').textContent;
-                addGameLog(`💬 ${oppName}: "${reply}"`);
-            }, 1500);
+            if (appState.currentGameMode === 'ONLINE') {
+                // หมายเหตุ: ระบบแชทจริงต้องใช้ตาราง Messages เพิ่มเติมใน GAS
+                // เวอร์ชันนี้แสดงข้อความของตัวเองในบันทึกเหตุการณ์เท่านั้น
+            } else {
+                setTimeout(() => {
+                    const responses = ["ยอดเยี่ยมมาก!", "เป็นคำแนะนำที่เยี่ยม!", "ระวังตัวไว้ด้วยล่ะ!", "สนามรบตึงมือจริง!"];
+                    const reply = responses[Math.floor(Math.random() * responses.length)];
+                    const oppName = document.getElementById('opponent-name-text').textContent;
+                    addGameLog(`💬 ${oppName}: "${reply}"`);
+                }, 1500);
+            }
         }
 
-        function requestDraw() {
+        async function requestDraw() {
+            if (appState.currentGameMode !== 'ONLINE') {
+                showNotification("ไม่รองรับ", "การขอเสมอใช้ได้เฉพาะโหมดออนไลน์");
+                return;
+            }
+            if (!gasReady() || !appState.currentRoomId) return;
             addGameLog("🤝 คุณยื่นข้อเสนอขอจับมือเสมอสงคราม...");
-            setTimeout(() => {
-                const oppName = document.getElementById('opponent-name-text').textContent;
-                const accepted = Math.random() > 0.4; // 60% สิทธิ์การตอบรับเสมอ
-                if (accepted) {
-                    addGameLog(`🤝 ${oppName} ได้ยอมรับเงื่อนไขการเสมอ ทั้งสองตระกูลแลกเปลี่ยนดาบคืนดีกัน!`);
-                    appState.gameActive = false;
-                    clearInterval(appState.timerInterval);
-                    submitScoreToGoogleSheet("draw");
-                } else {
-                    addGameLog(`🙅 ${oppName} ปฏิเสธการเสมอ! การหลั่งเลือดของดาบจักต้องดำเนินต่อไป`);
-                    showNotification("ปฏิเสธ", "ฝ่ายตรงข้ามไม่รับคำเสนอขอเสมอ");
-                }
-            }, 1500);
+            try {
+                await gasCall({ action: 'offerDraw', roomId: appState.currentRoomId, from: appState.playerName });
+                showNotification("ส่งคำขอแล้ว", "รอฝ่ายตรงข้ามตอบรับข้อเสนอเสมอ");
+            } catch(e) {
+                showNotification("ผิดพลาด", "ส่งคำขอเสมอไม่สำเร็จ", true);
+            }
         }
 
-        function resignGame() {
+        async function resignGame() {
             const accept = confirm("ท่านแน่ใจหรือไม่ที่จะทำการ 'คว้านท้องตัวเอง (เซ็ปปุกุ)' หรือยอมแพ้แก่อริศัตรูเพื่อรักษาชีวิตลูกเรือ?");
-            if (accept) {
-                const oppClan = appState.onlineRole === CLANS.RED ? CLANS.BLACK : CLANS.RED;
+            if (!accept) return;
+
+            const oppClan = appState.onlineRole === 'red' ? CLANS.BLACK : CLANS.RED;
+
+            if (appState.currentGameMode === 'ONLINE' && gasReady() && appState.currentRoomId) {
+                const winner = oppClan === CLANS.RED ? 'red' : 'black';
+                try {
+                    await gasCall({ action: 'forfeitRoom', roomId: appState.currentRoomId, winner });
+                } catch(e) { console.error('forfeit error:', e); }
+                stopRoomPolling();
+                appState.gameActive = false;
+                clearInterval(appState.timerInterval);
+                addGameLog("💀 คุณยอมแพ้ในสนามรบ");
+                submitScoreToGoogleSheet("lose");
+                showNotification("ยอมแพ้", "คุณยอมแพ้ในสมรภูมินี้");
+            } else {
                 endChessGame(oppClan);
             }
         }
 
-        function backToLobby() {
+        async function backToLobby() {
             if (appState.gameActive) {
                 const leave = confirm("เกมนี้กำลังคืบคลาน การหลบหนีจะถูกลงทัณฑ์เป็น 'พ่ายแพ้' ท่านยังคงประสงค์จะหนีออกจากกระดานหรือไม่?");
                 if (!leave) return;
-                
-                // ให้คะแนนเป็นแพ้
-                const oppClan = appState.onlineRole === CLANS.RED ? CLANS.BLACK : CLANS.RED;
-                endChessGame(oppClan);
+
+                const oppClan = appState.onlineRole === 'red' ? CLANS.BLACK : CLANS.RED;
+                if (appState.currentGameMode === 'ONLINE' && gasReady() && appState.currentRoomId) {
+                    const winner = oppClan === CLANS.RED ? 'red' : 'black';
+                    try {
+                        await gasCall({ action: 'forfeitRoom', roomId: appState.currentRoomId, winner });
+                    } catch(e) { console.error('forfeit error:', e); }
+                    submitScoreToGoogleSheet("lose");
+                } else {
+                    endChessGame(oppClan);
+                }
+                appState.gameActive = false;
             }
+            stopRoomPolling();
             clearInterval(appState.timerInterval);
+            appState.currentRoomId = null;
+            appState.onlineVersion = 0;
             showScreen('screen-lobby');
             loadLeaderboard();
             refreshRooms();
