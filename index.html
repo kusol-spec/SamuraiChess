@@ -144,6 +144,28 @@
             from { transform: scaleY(0.3); }
             to   { transform: scaleY(1); }
         }
+        .square-last-move {
+            background-color: rgba(234, 179, 8, 0.25) !important;
+            box-shadow: inset 0 0 0 2px rgba(234, 179, 8, 0.5);
+        }
+        .board-label {
+            font-size: 9px;
+            color: #52525b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            user-select: none;
+        }
+        #board-row-labels { gap: 0; }
+        #board-row-labels .board-label { flex: 1; }
+        #board-col-labels { gap: 0; }
+        #board-col-labels .board-label { flex: 1; }
+        /* Smooth board size */
+        #game-board-grid {
+            width: 100%;
+            aspect-ratio: 1/1;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 </head>
@@ -295,9 +317,14 @@
                             <h3 class="text-xl font-bold text-zinc-100 mb-2">สู้กับ ขุนพล AI</h3>
                             <p class="text-xs text-zinc-400 leading-relaxed mb-4">ฝึกฝนกลยุทธ์ของคุณกับระบบตอบโต้อัจฉริยะแบบออฟไลน์ เลือกบุกหรือรับตามสไตล์การรบของคุณ</p>
                         </div>
-                        <button onclick="startAiGame()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl transition">
-                            เริ่มสู้กับ AI
+                        <button onclick="startAiGame()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-robot"></i> เริ่มสู้กับ AI
                         </button>
+                        <div class="flex gap-1.5 mt-2">
+                            <button onclick="setAiDifficulty('easy')" id="diff-easy" class="flex-1 text-[10px] py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 hover:bg-emerald-900 hover:border-emerald-700 text-zinc-400 transition font-bold">🌱 ง่าย</button>
+                            <button onclick="setAiDifficulty('medium')" id="diff-medium" class="flex-1 text-[10px] py-1.5 rounded-lg border border-red-700 bg-red-900/40 text-red-300 font-bold">⚔️ ปกติ</button>
+                            <button onclick="setAiDifficulty('hard')" id="diff-hard" class="flex-1 text-[10px] py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 hover:bg-purple-900 hover:border-purple-700 text-zinc-400 transition font-bold">💀 ยาก</button>
+                        </div>
                     </div>
 
                     <!-- Online Mode Card -->
@@ -422,11 +449,11 @@
         </div>
 
         <!-- SCREEN 3: CHESS GAME INTERFACE -->
-        <div id="screen-game" class="hidden flex-grow flex flex-col lg:flex-row gap-6">
+        <div id="screen-game" class="hidden flex-grow flex flex-col lg:flex-row gap-4 lg:gap-6">
 
-            <!-- Compact Music Player (floating, small) -->
+            <!-- Compact Music Player (floating) -->
             <div id="music-bar" class="hidden fixed bottom-4 right-4 z-40 bg-zinc-900/95 border border-zinc-800 rounded-full pl-1.5 pr-3 py-1.5 flex items-center gap-2 shadow-lg backdrop-blur-sm" style="display:none">
-                <button id="music-toggle-btn" onclick="toggleMusic()" class="w-8 h-8 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white transition flex-shrink-0" title="เล่น/หยุดเพลง">
+                <button id="music-toggle-btn" onclick="toggleMusic()" class="w-8 h-8 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white transition flex-shrink-0">
                     <i id="music-icon" class="fa-solid fa-pause text-[10px]"></i>
                 </button>
                 <div class="flex items-center gap-1.5">
@@ -435,109 +462,128 @@
                 </div>
             </div>
 
-            <!-- Game Board Area (Left/Middle) -->
-            <div class="lg:col-span-2 flex flex-col gap-4 flex-grow items-center justify-center">
-                <!-- Status & Turn Indicator Bar -->
-                <div class="w-full max-w-3xl bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center justify-between shadow-md">
+            <!-- LEFT: Board Column -->
+            <div class="flex flex-col gap-3 flex-grow min-w-0">
+
+                <!-- Status Bar -->
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <span class="relative flex h-3 w-3">
+                        <span class="relative flex h-2.5 w-2.5">
                             <span id="turn-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-red-400"></span>
-                            <span id="turn-dot" class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            <span id="turn-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                         </span>
-                        <span id="turn-indicator" class="text-sm font-bold text-zinc-200">ตากองทัพซามูไรสีแดง</span>
+                        <span id="turn-indicator" class="text-sm font-bold text-zinc-200">ตาฝ่ายแดง</span>
                     </div>
-                    <div id="game-room-id-badge" class="bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-400 px-2 py-1 rounded">
-                        โหมด: AI
+                    <div class="flex items-center gap-3">
+                        <span id="game-room-id-badge" class="text-[10px] text-zinc-500 bg-zinc-950 border border-zinc-800 px-2 py-0.5 rounded">โหมด: AI</span>
+                        <span class="font-mono font-bold text-red-400 text-sm" id="game-timer">00:00</span>
                     </div>
                 </div>
 
                 <!-- Opponent Card -->
-                <div class="w-full max-w-3xl flex justify-between items-center bg-zinc-950 border border-zinc-900/60 p-3 rounded-xl">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-400">
-                            AI
-                        </div>
+                <div id="opponent-card" class="flex items-center justify-between bg-zinc-950 border border-zinc-800 px-4 py-2.5 rounded-xl">
+                    <div class="flex items-center gap-2.5">
+                        <div id="opp-avatar" class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-400">AI</div>
                         <div>
-                            <p id="opponent-name-text" class="text-sm font-bold text-zinc-300">ขุนพลคอมพิวเตอร์ AI</p>
-                            <p class="text-[10px] text-zinc-500">กองทัพนักรบสีดำ</p>
+                            <p id="opponent-name-text" class="text-sm font-bold text-zinc-200">ขุนพลคอมพิวเตอร์ AI</p>
+                            <p id="opponent-clan-label" class="text-[10px] text-zinc-500">กองทัพสีดำ</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-[10px] text-zinc-500">ตัวหมากที่กินได้</p>
-                        <div id="captured-by-black" class="flex gap-1 h-5 overflow-hidden justify-end"></div>
+                    <div class="flex flex-col items-end gap-1">
+                        <div id="captured-by-black" class="flex gap-0.5 flex-wrap justify-end max-w-[120px]"></div>
+                        <div id="opp-score-diff" class="text-[10px] text-zinc-600"></div>
                     </div>
                 </div>
 
-                <!-- Main Interactive Chess Board -->
-                <div class="w-full max-w-3xl">
-                    <div id="game-board-grid" class="chess-board rounded-2xl overflow-hidden shadow-2xl">
-                        <!-- โครงสร้างกระดาน 8x8 จะถูกวาดขึ้นด้วย JavaScript -->
+                <!-- Chess Board -->
+                <div class="relative w-full" style="max-width:min(100%,calc(100vh - 340px))">
+                    <!-- Row labels (แถว 1-8) -->
+                    <div id="board-row-labels" class="absolute -left-5 top-0 h-full flex flex-col pointer-events-none" style="width:18px">
+                        <!-- filled by JS -->
                     </div>
+                    <!-- Col labels (a-h) -->
+                    <div id="board-col-labels" class="absolute -bottom-5 left-0 w-full flex pointer-events-none" style="height:18px">
+                        <!-- filled by JS -->
+                    </div>
+                    <div id="game-board-grid" class="chess-board rounded-xl overflow-hidden shadow-2xl w-full"></div>
                 </div>
 
                 <!-- Player Card -->
-                <div class="w-full max-w-3xl flex justify-between items-center bg-zinc-950 border border-zinc-900/60 p-3 rounded-xl">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-red-900 border border-red-700 flex items-center justify-center font-bold text-xs text-white">
-                            P
-                        </div>
+                <div id="player-card" class="flex items-center justify-between bg-zinc-950 border border-zinc-800 px-4 py-2.5 rounded-xl">
+                    <div class="flex items-center gap-2.5">
+                        <div id="player-avatar" class="w-8 h-8 rounded-full bg-red-900 border border-red-700 flex items-center justify-center font-bold text-xs text-white">P</div>
                         <div>
                             <p id="player-name-text" class="text-sm font-bold text-red-400">ชื่อของคุณ</p>
-                            <p class="text-[10px] text-zinc-500">กองทัพนักรบสีแดง</p>
+                            <p id="player-clan-label" class="text-[10px] text-zinc-500">กองทัพสีแดง</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-[10px] text-zinc-500">ตัวหมากที่กินได้</p>
-                        <div id="captured-by-red" class="flex gap-1 h-5 overflow-hidden justify-end"></div>
+                    <div class="flex flex-col items-end gap-1">
+                        <div id="captured-by-red" class="flex gap-0.5 flex-wrap justify-end max-w-[120px]"></div>
+                        <div id="player-score-diff" class="text-[10px] text-zinc-600"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Game Tools and Controls (Right Panel) -->
-            <div class="w-full lg:w-80 flex flex-col gap-4">
-                <!-- Info/Control Card -->
-                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg flex-grow flex flex-col justify-between">
-                    <div>
-                        <h3 class="font-extrabold text-lg text-zinc-200 mb-2 border-b border-zinc-800 pb-2">คำสั่งสนามรบ</h3>
-                        
-                        <!-- Game Status Messages Box -->
-                        <div class="bg-zinc-950 rounded-xl p-4 border border-zinc-800 min-h-[140px] flex flex-col justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">บันทึกเหตุการณ์:</p>
-                                <div id="game-logs" class="text-xs text-zinc-400 space-y-1.5 max-h-24 overflow-y-auto pr-1">
-                                    <p class="text-zinc-500">สงครามได้เริ่มต้นขึ้นแล้ว!</p>
-                                </div>
-                            </div>
-                            <div class="mt-4 pt-2 border-t border-zinc-900 flex justify-between text-xs text-zinc-400">
-                                <span>เวลาเดิน:</span>
-                                <span class="font-bold text-red-400" id="game-timer">00:00</span>
-                            </div>
-                        </div>
+            <!-- RIGHT: Control Panel -->
+            <div class="w-full lg:w-72 xl:w-80 flex flex-col gap-3 flex-shrink-0">
 
-                        <!-- Chat & Interaction Box for Multiplayer -->
-                        <div id="multiplayer-chat-box" class="hidden mt-4">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1">แชทในเกม (ส่งข้อความรวดเร็ว)</label>
-                            <div class="grid grid-cols-2 gap-1.5">
-                                <button onclick="sendQuickChat('ขอบคุณสำหรับเกมที่ดี!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1 px-1.5 rounded text-left truncate">🤝 ขอบคุณสำหรับเกม!</button>
-                                <button onclick="sendQuickChat('เดินได้ดีมาก!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1 px-1.5 rounded text-left truncate">👏 เดินได้ดีมาก!</button>
-                                <button onclick="sendQuickChat('ตึงมือจริงๆ ตาเราเดินแล้ว')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1 px-1.5 rounded text-left truncate">⚡ ตึงมือจริงๆ</button>
-                                <button onclick="sendQuickChat('ขอยอมแพ้ ดาบพ่ายแพ้แล้ว...')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1 px-1.5 rounded text-left truncate">🏳️ ขอยอมแพ้</button>
-                            </div>
-                        </div>
+                <!-- Game Log -->
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex-1 flex flex-col min-h-0">
+                    <p class="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-2">บันทึกเหตุการณ์</p>
+                    <div id="game-logs" class="text-xs text-zinc-400 space-y-1 overflow-y-auto flex-1 pr-1" style="max-height:180px">
+                        <p class="text-zinc-500">สงครามได้เริ่มต้นขึ้นแล้ว!</p>
                     </div>
+                </div>
 
-                    <!-- Action Buttons -->
-                    <div class="space-y-2 mt-6">
-                        <button onclick="requestDraw()" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-2.5 rounded-xl text-xs transition">
-                            <i class="fa-solid fa-handshake mr-1"></i> เสนอเสมอ (Draw)
-                        </button>
-                        <button onclick="resignGame()" class="w-full bg-red-950 hover:bg-red-900 text-red-200 border border-red-900/50 font-bold py-2.5 rounded-xl text-xs transition">
-                            <i class="fa-solid fa-flag mr-1"></i> ยอมแพ้ในสนามรบ
-                        </button>
-                        <button onclick="backToLobby()" class="w-full bg-zinc-950 hover:bg-zinc-900 text-zinc-400 font-bold py-2.5 rounded-xl text-xs transition">
-                            <i class="fa-solid fa-arrow-left mr-1"></i> กลับไปล็อบบี้
-                        </button>
+                <!-- Move History -->
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">ประวัติการเดิน</p>
+                    <div id="move-history" class="text-[10px] text-zinc-500 overflow-y-auto font-mono" style="max-height:120px">
+                        <span class="text-zinc-600">—</span>
                     </div>
+                </div>
+
+                <!-- Quick Chat (Online only) -->
+                <div id="multiplayer-chat-box" class="hidden bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">แชทด่วน</p>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button onclick="sendQuickChat('ขอบคุณสำหรับเกมที่ดี!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1.5 px-2 rounded text-left">🤝 ขอบคุณ!</button>
+                        <button onclick="sendQuickChat('เดินได้ดีมาก!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1.5 px-2 rounded text-left">👏 เดินดีมาก!</button>
+                        <button onclick="sendQuickChat('ตึงมือจริงๆ')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1.5 px-2 rounded text-left">⚡ ตึงมือ!</button>
+                        <button onclick="sendQuickChat('ดีมากเลย!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1.5 px-2 rounded text-left">🔥 เก่งมาก!</button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="space-y-2">
+                    <button onclick="requestDraw()" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-handshake"></i> เสนอเสมอ
+                    </button>
+                    <button onclick="resignGame()" class="w-full bg-red-950 hover:bg-red-900 text-red-300 border border-red-900/50 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-flag"></i> ยอมแพ้
+                    </button>
+                    <button onclick="backToLobby()" class="w-full bg-zinc-950 hover:bg-zinc-900 text-zinc-500 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-arrow-left"></i> กลับล็อบบี้
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Result Modal -->
+        <div id="result-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden">
+                <div id="result-glow" class="absolute inset-0 opacity-10 pointer-events-none"></div>
+                <div id="result-icon" class="text-6xl mb-4">🏆</div>
+                <h2 id="result-title" class="text-2xl font-extrabold text-white mb-2"></h2>
+                <p id="result-desc" class="text-sm text-zinc-400 mb-6"></p>
+                <div id="result-stats" class="bg-zinc-950 rounded-xl p-3 mb-6 text-xs text-zinc-400 flex justify-around"></div>
+                <div class="flex gap-3">
+                    <button onclick="closeResultModal(); startAiGame();" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-3 rounded-xl text-sm transition">
+                        🔄 เล่นใหม่
+                    </button>
+                    <button onclick="closeResultModal(); backToLobby();" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl text-sm transition">
+                        🏠 ล็อบบี้
+                    </button>
                 </div>
             </div>
         </div>
@@ -906,7 +952,10 @@
             onlineRooms: [],
             onlineVersion: 0,
             pollTimer: null,
-            _drawPromptShown: false
+            _drawPromptShown: false,
+            lastMove: null,        // { fromRow, fromCol, toRow, toCol }
+            moveHistory: [],       // [{clan, piece, from, to, capture}]
+            aiDifficulty: 'medium' // 'easy' | 'medium' | 'hard'
         };
 
         // --- INIT APP ---
@@ -1357,8 +1406,22 @@
         // ตั้งค่าหน้าจอเกมสำหรับผู้เข้าร่วม (ไม่ reset board เพราะเซ็ตไว้แล้ว)
         function setupGameOnline(pName, oppName, board) {
             showScreen('screen-game');
+            appState.moveHistory = [];
+            appState.lastMove = null;
+            document.getElementById('move-history').innerHTML = '<span class="text-zinc-600">—</span>';
+
             document.getElementById('player-name-text').textContent = pName;
             document.getElementById('opponent-name-text').textContent = oppName;
+
+            const playerIsRed = appState.onlineRole === 'red';
+            const playerColor = playerIsRed ? '#dc2626' : '#1e293b';
+            const oppColor    = playerIsRed ? '#1e293b' : '#dc2626';
+            document.getElementById('player-avatar').style.background = playerColor;
+            document.getElementById('player-avatar').style.borderColor = playerIsRed ? '#7f1d1d' : '#334155';
+            document.getElementById('player-clan-label').textContent = playerIsRed ? 'กองทัพสีแดง' : 'กองทัพสีดำ';
+            document.getElementById('player-name-text').className = `text-sm font-bold ${playerIsRed ? 'text-red-400' : 'text-blue-300'}`;
+            document.getElementById('opp-avatar').style.background = oppColor;
+            document.getElementById('opponent-clan-label').textContent = playerIsRed ? 'กองทัพสีดำ' : 'กองทัพสีแดง';
 
             const badge = document.getElementById('game-room-id-badge');
             badge.textContent = `ONLINE | ห้อง: ${appState.currentRoomId}`;
@@ -1385,15 +1448,49 @@
 
             appState.board = board;
             renderBoardGrid();
+            renderBoardLabels();
             updateTurnIndicator();
         }
 
+        function setAiDifficulty(level) {
+            appState.aiDifficulty = level;
+            ['easy','medium','hard'].forEach(l => {
+                const btn = document.getElementById('diff-' + l);
+                if (!btn) return;
+                btn.className = l === level
+                    ? `flex-1 text-[10px] py-1.5 rounded-lg border font-bold transition ${l==='easy'?'border-emerald-600 bg-emerald-900/40 text-emerald-300':l==='hard'?'border-purple-600 bg-purple-900/40 text-purple-300':'border-red-700 bg-red-900/40 text-red-300'}`
+                    : 'flex-1 text-[10px] py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-400 font-bold transition';
+            });
+            const labels = { easy:'🌱 ง่าย', medium:'⚔️ ปกติ', hard:'💀 ยาก' };
+            showNotification("ระดับ AI", `เปลี่ยนเป็น ${labels[level]} แล้ว`);
+        }
+
+        function closeResultModal() {
+            document.getElementById('result-modal').classList.add('hidden');
+        }
+
+        function showResultModal(icon, title, desc, resultKey) {
+            const modal = document.getElementById('result-modal');
+            document.getElementById('result-icon').textContent = icon;
+            document.getElementById('result-title').textContent = title;
+            document.getElementById('result-desc').textContent = desc;
+            const mins = Math.floor(appState.secondsElapsed / 60);
+            const secs = appState.secondsElapsed % 60;
+            const moves = appState.moveHistory.length;
+            document.getElementById('result-stats').innerHTML = `
+                <div><p class="font-bold text-zinc-200 text-sm">${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</p><p>เวลาที่ใช้</p></div>
+                <div><p class="font-bold text-zinc-200 text-sm">${moves}</p><p>ตาเดิน</p></div>
+                <div><p class="font-bold text-zinc-200 text-sm">${resultKey==='win'?'ชนะ':resultKey==='lose'?'แพ้':'เสมอ'}</p><p>ผลการแข่ง</p></div>
+            `;
+            const glow = document.getElementById('result-glow');
+            glow.style.background = resultKey==='win' ? 'radial-gradient(ellipse at center, #fbbf24, transparent)' : resultKey==='lose' ? 'radial-gradient(ellipse at center, #ef4444, transparent)' : 'radial-gradient(ellipse at center, #64748b, transparent)';
+            modal.classList.remove('hidden');
+        }
         function startAiGame() {
             stopRoomPolling();
             appState.currentGameMode = 'AI';
             appState.currentRoomId = null;
-            appState.onlineRole = 'red'; // เล่นสู้กับคอมพิวเตอร์แบบปกติ
-            
+            appState.onlineRole = 'red';
             showNotification("เริ่มต้นสงคราม AI", "คุณเป็นฝ่ายควบคุมกองกำลังสีแดง เริ่มโจมตีได้!");
             setupGame(appState.playerName, "ขุนพลคอมพิวเตอร์ AI");
             appState.gameActive = true;
@@ -1402,42 +1499,48 @@
         // --- GAME LOGIC & BOARD SYSTEM ---
         function setupGame(pName, oppName) {
             showScreen('screen-game');
+            appState.moveHistory = [];
+            appState.lastMove = null;
+            document.getElementById('move-history').innerHTML = '<span class="text-zinc-600">—</span>';
+
+            // ชื่อผู้เล่น
             document.getElementById('player-name-text').textContent = pName;
             document.getElementById('opponent-name-text').textContent = oppName;
-            
-            const badge = document.getElementById('game-room-id-badge');
-            if (appState.currentGameMode === 'ONLINE') {
-                badge.textContent = `ONLINE | ห้อง: ${appState.currentRoomId}`;
-                document.getElementById('multiplayer-chat-box').classList.remove('hidden');
-            } else {
-                badge.textContent = `โหมดดวล AI ออฟไลน์`;
-                document.getElementById('multiplayer-chat-box').classList.add('hidden');
-            }
 
-            // รีเซ็ตเกมทั้งหมด
+            // สีผู้เล่น (แดงเสมอในโหมด AI)
+            const playerIsRed = appState.onlineRole === 'red';
+            const playerColor = playerIsRed ? '#dc2626' : '#1e293b';
+            const oppColor    = playerIsRed ? '#1e293b' : '#dc2626';
+            document.getElementById('player-avatar').style.background = playerColor;
+            document.getElementById('player-avatar').style.borderColor = playerIsRed ? '#7f1d1d' : '#334155';
+            document.getElementById('player-clan-label').textContent = playerIsRed ? 'กองทัพสีแดง' : 'กองทัพสีดำ';
+            document.getElementById('player-name-text').className = `text-sm font-bold ${playerIsRed ? 'text-red-400' : 'text-blue-300'}`;
+            document.getElementById('opp-avatar').style.background = oppColor;
+            document.getElementById('opponent-clan-label').textContent = playerIsRed ? 'กองทัพสีดำ' : 'กองทัพสีแดง';
+
+            document.getElementById('game-room-id-badge').textContent = 'โหมด: AI';
+            document.getElementById('multiplayer-chat-box').classList.add('hidden');
+
+            initializeBoardState();
             appState.currentTurn = CLANS.RED;
             appState.selectedSquare = null;
             appState.validMoves = [];
             appState.capturedPieces = { red: [], black: [] };
-            
+            appState.gameActive = true;
+
             document.getElementById('captured-by-red').innerHTML = '';
             document.getElementById('captured-by-black').innerHTML = '';
             document.getElementById('game-logs').innerHTML = '<p class="text-zinc-500">กระดานรบเปิดฉากแล้ว สงครามเริ่มขึ้น!</p>';
 
-            // เริ่มระบบนับเวลา (Timer)
             clearInterval(appState.timerInterval);
             appState.secondsElapsed = 0;
             updateTimerDisplay();
             appState.timerInterval = setInterval(() => {
-                if (appState.gameActive) {
-                    appState.secondsElapsed++;
-                    updateTimerDisplay();
-                }
+                if (appState.gameActive) { appState.secondsElapsed++; updateTimerDisplay(); }
             }, 1000);
 
-            // สร้างกระดานหมากรุกเริ่มต้น
-            initializeBoardState();
             renderBoardGrid();
+            renderBoardLabels();
             updateTurnIndicator();
         }
 
@@ -1445,6 +1548,16 @@
             const min = Math.floor(appState.secondsElapsed / 60).toString().padStart(2, '0');
             const sec = (appState.secondsElapsed % 60).toString().padStart(2, '0');
             document.getElementById('game-timer').textContent = `${min}:${sec}`;
+        }
+
+        function renderBoardLabels() {
+            const flip = appState.currentGameMode === 'ONLINE' && appState.onlineRole === 'black';
+            const rows = flip ? ['1','2','3','4','5','6','7','8'] : ['8','7','6','5','4','3','2','1'];
+            const cols = flip ? ['h','g','f','e','d','c','b','a'] : ['a','b','c','d','e','f','g','h'];
+            const rowEl = document.getElementById('board-row-labels');
+            const colEl = document.getElementById('board-col-labels');
+            if (rowEl) rowEl.innerHTML = rows.map(r => `<div class="board-label">${r}</div>`).join('');
+            if (colEl) colEl.innerHTML = cols.map(c => `<div class="board-label">${c}</div>`).join('');
         }
 
         function addGameLog(message) {
@@ -1524,6 +1637,14 @@
                             square.classList.add('square-highlighted-capture');
                         } else {
                             square.classList.add('square-highlighted');
+                        }
+                    }
+
+                    // highlight ตาล่าสุด
+                    if (appState.lastMove) {
+                        const lm = appState.lastMove;
+                        if ((row === lm.fromRow && col === lm.fromCol) || (row === lm.toRow && col === lm.toCol)) {
+                            square.classList.add('square-last-move');
                         }
                     }
 
@@ -1610,6 +1731,19 @@
             appState.board[toRow][toCol] = piece;
             appState.board[fromRow][fromCol] = null;
 
+            // บันทึก last move และ history
+            appState.lastMove = { fromRow, fromCol, toRow, toCol };
+            const moveNum = Math.ceil((appState.moveHistory.length + 1) / 2);
+            const isRedTurn = piece.clan === CLANS.RED;
+            const colNames = ['a','b','c','d','e','f','g','h'];
+            const pieceName = PIECE_NAMES[piece.type] || '';
+            const capSym = targetPiece ? 'x' : '-';
+            const histEntry = `${isRedTurn ? `<span class="text-zinc-600">${moveNum}.</span>` : ''}<span class="${isRedTurn?'text-red-400':'text-blue-400'}">${pieceName}${colNames[fromCol]}${8-fromRow}${capSym}${colNames[toCol]}${8-toRow}</span> `;
+            appState.moveHistory.push({ clan: piece.clan, piece: piece.type, fromRow, fromCol, toRow, toCol, capture: !!targetPiece });
+            const mh = document.getElementById('move-history');
+            mh.innerHTML += histEntry;
+            mh.scrollTop = mh.scrollHeight;
+
             // 3. กฎพิเศษ: เบี้ยข้ามฝั่งกลายเป็นเบี้ยหน้า
             if (piece.type === PIECE_TYPES.PAWN && !piece.promoted) {
                 const promotionZone = piece.clan === CLANS.RED
@@ -1642,7 +1776,7 @@
 
             // 6. เล่นกับ AI หากเป็นตาเดินของ AI
             if (appState.gameActive && appState.currentGameMode === 'AI' && appState.currentTurn === CLANS.BLACK) {
-                setTimeout(makeAiMove, 800); // ดีเลย์สั้นๆ เพื่อให้การเล่นสมจริง
+                makeAiMove(); // makeAiMove จัดการ delay ภายในตามระดับความยากเอง
             }
             // 7. โหมดออนไลน์ — ส่ง board state ใหม่ขึ้น GAS ให้ฝ่ายตรงข้ามดึงไปแสดง
             else if (appState.currentGameMode === 'ONLINE') {
@@ -1683,35 +1817,27 @@
         function endChessGame(winnerClan) {
             appState.gameActive = false;
             clearInterval(appState.timerInterval);
-            
-            let winText = "";
-            let resultKey = "draw";
+
+            let icon, title, desc, resultKey;
 
             if (appState.currentGameMode === 'ONLINE') {
                 if (winnerClan === appState.onlineRole) {
-                    winText = `ฝ่ายคุณชนะ! จับขุนฝ่ายตรงข้ามได้สำเร็จ!`;
-                    resultKey = "win";
+                    icon = '🏆'; title = 'ชัยชนะ!'; desc = 'คุณจับขุนฝ่ายตรงข้ามได้สำเร็จ!'; resultKey = 'win';
                 } else {
-                    winText = `ขุนของคุณถูกจับ... พ่ายแพ้ในสนามรบ`;
-                    resultKey = "lose";
+                    icon = '💀'; title = 'พ่ายแพ้'; desc = 'ขุนของคุณถูกจับ... ยกใหม่สู้ต่อ!'; resultKey = 'lose';
                 }
                 stopRoomPolling();
-                // อัปเดตสถานะห้องเป็น finished พร้อมผู้ชนะ (board ถูกส่งไปแล้วใน syncMoveToServer)
             } else {
                 if (winnerClan === CLANS.RED) {
-                    winText = `ยอดเยี่ยม! คุณจับขุนของ AI ได้สำเร็จ!`;
-                    resultKey = "win";
+                    icon = '🏆'; title = 'ยอดเยี่ยม!'; desc = 'คุณจับขุนของ AI ได้สำเร็จ!'; resultKey = 'win';
                 } else {
-                    winText = `AI จับขุนของคุณได้แล้ว... ลองใหม่อีกครั้ง!`;
-                    resultKey = "lose";
+                    icon = '🤖'; title = 'AI ชนะ'; desc = 'AI จับขุนของคุณแล้ว ลองใหม่อีกครั้ง!'; resultKey = 'lose';
                 }
             }
 
-            addGameLog(`🏆 ผลลัพธ์: ${winText}`);
-            showNotification("ผลศึกเสร็จสิ้น", winText);
-            
-            // ส่งผลลัพธ์ลง Google Sheet API
+            addGameLog(`${icon} ผลลัพธ์: ${desc}`);
             submitScoreToGoogleSheet(resultKey);
+            setTimeout(() => showResultModal(icon, title, desc, resultKey), 600);
         }
 
         function addCapturedPieceUI(capturerClan, pieceType) {
@@ -1722,6 +1848,22 @@
             wrap.style.cssText = 'width:18px;height:20px;flex-shrink:0;';
             wrap.innerHTML = getPieceSVG(pieceType, capturedClan);
             container.appendChild(wrap);
+            updateMaterialScore();
+        }
+
+        const PIECE_VALUE = {
+            [PIECE_TYPES.PAWN]: 1, [PIECE_TYPES.BISHOP]: 3, [PIECE_TYPES.KNIGHT]: 3,
+            [PIECE_TYPES.ROOK]: 6, [PIECE_TYPES.QUEEN]: 2, [PIECE_TYPES.KING]: 0
+        };
+
+        function updateMaterialScore() {
+            const redCaptured   = appState.capturedPieces.red.reduce((s, t) => s + (PIECE_VALUE[t] || 0), 0);
+            const blackCaptured = appState.capturedPieces.black.reduce((s, t) => s + (PIECE_VALUE[t] || 0), 0);
+            const diff = redCaptured - blackCaptured;
+            const redEl = document.getElementById(appState.onlineRole === 'red' ? 'player-score-diff' : 'opp-score-diff');
+            const blackEl = document.getElementById(appState.onlineRole === 'red' ? 'opp-score-diff' : 'player-score-diff');
+            if (redEl) redEl.textContent = diff > 0 ? `+${diff}` : '';
+            if (blackEl) blackEl.textContent = diff < 0 ? `+${-diff}` : '';
         }
 
         function updateTurnIndicator() {
@@ -1856,7 +1998,6 @@
         function makeAiMove() {
             if (!appState.gameActive) return;
 
-            // ค้นหาหมากสีดำ (แคลน AI) ทั้งหมดที่สามารถเดินได้
             let allLegalMoves = [];
             for (let row = 0; row < 8; row++) {
                 for (let col = 0; col < 8; col++) {
@@ -1865,9 +2006,7 @@
                         const moves = calculateValidMoves(row, col);
                         moves.forEach(m => {
                             allLegalMoves.push({
-                                from: { row, col },
-                                to: m,
-                                piece,
+                                from: { row, col }, to: m, piece,
                                 priority: evaluateMovePriority(row, col, m.row, m.col)
                             });
                         });
@@ -1875,20 +2014,26 @@
                 }
             }
 
-            if (allLegalMoves.length === 0) {
-                // อับจนหนทาง ไร้ตาเดิน AI ขอยอมแพ้
-                endChessGame(CLANS.RED);
-                return;
+            if (allLegalMoves.length === 0) { endChessGame(CLANS.RED); return; }
+
+            allLegalMoves.sort((a, b) => b.priority - a.priority);
+
+            let selectedMove;
+            const diff = appState.aiDifficulty || 'medium';
+            if (diff === 'easy') {
+                // สุ่มจากทั้งหมด (ไม่ฉลาด)
+                selectedMove = allLegalMoves[Math.floor(Math.random() * allLegalMoves.length)];
+            } else if (diff === 'hard') {
+                // เลือกที่ดีที่สุดเสมอ
+                selectedMove = allLegalMoves[0];
+            } else {
+                // ปกติ: สุ่มจาก 3 อันดับแรก
+                const pool = allLegalMoves.slice(0, Math.min(3, allLegalMoves.length));
+                selectedMove = pool[Math.floor(Math.random() * pool.length)];
             }
 
-            // จัดเรียงลำดับการตัดสินใจของ AI (เลือกเดินช่องที่มีความสำคัญ/การกิน หรือเป้าหมายอันตรายก่อน)
-            allLegalMoves.sort((a, b) => b.priority - a.priority);
-            
-            // สุ่มเล็กน้อยจากแผนการที่ดีที่สุด 3 ลำดับแรกเพื่อความท้าทายแบบธรรมชาติ
-            const bestMovesPool = allLegalMoves.slice(0, Math.min(3, allLegalMoves.length));
-            const selectedMove = bestMovesPool[Math.floor(Math.random() * bestMovesPool.length)];
-
-            executePieceMove(selectedMove.from.row, selectedMove.from.col, selectedMove.to.row, selectedMove.to.col);
+            const delay = diff === 'hard' ? 400 : diff === 'easy' ? 1200 : 700;
+            setTimeout(() => executePieceMove(selectedMove.from.row, selectedMove.from.col, selectedMove.to.row, selectedMove.to.col), delay);
         }
 
         function evaluateMovePriority(fromRow, fromCol, toRow, toCol) {
