@@ -495,8 +495,14 @@
                     </div>
                 </div>
 
+                <!-- Check Warning Banner -->
+                <div id="check-warning" class="hidden bg-red-950/60 border border-red-700 rounded-xl px-4 py-2 flex items-center gap-2 animate-pulse">
+                    <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+                    <span id="check-warning-text" class="text-sm font-bold text-red-300">ขุนของคุณถูกโจมตี! รีบป้องกัน!</span>
+                </div>
+
                 <!-- Chess Board -->
-                <div class="relative w-full" style="max-width:min(100%,calc(100vh - 340px))">
+                <div class="relative w-full mx-auto" style="max-width:min(92vw,calc(100vh - 280px),780px)">
                     <!-- Row labels (แถว 1-8) -->
                     <div id="board-row-labels" class="absolute -left-5 top-0 h-full flex flex-col pointer-events-none" style="width:18px">
                         <!-- filled by JS -->
@@ -525,12 +531,12 @@
             </div>
 
             <!-- RIGHT: Control Panel -->
-            <div class="w-full lg:w-72 xl:w-80 flex flex-col gap-3 flex-shrink-0">
+            <div class="w-full lg:w-64 xl:w-72 flex flex-col gap-3 flex-shrink-0">
 
                 <!-- Game Log -->
-                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex-1 flex flex-col min-h-0">
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                     <p class="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-2">บันทึกเหตุการณ์</p>
-                    <div id="game-logs" class="text-xs text-zinc-400 space-y-1 overflow-y-auto flex-1 pr-1" style="max-height:180px">
+                    <div id="game-logs" class="text-xs text-zinc-400 space-y-1 overflow-y-auto pr-1" style="max-height:110px">
                         <p class="text-zinc-500">สงครามได้เริ่มต้นขึ้นแล้ว!</p>
                     </div>
                 </div>
@@ -538,19 +544,30 @@
                 <!-- Move History -->
                 <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                     <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">ประวัติการเดิน</p>
-                    <div id="move-history" class="text-[10px] text-zinc-500 overflow-y-auto font-mono" style="max-height:120px">
+                    <div id="move-history" class="text-[10px] text-zinc-500 overflow-y-auto font-mono" style="max-height:90px">
                         <span class="text-zinc-600">—</span>
                     </div>
                 </div>
 
-                <!-- Quick Chat (Online only) -->
-                <div id="multiplayer-chat-box" class="hidden bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">แชทด่วน</p>
-                    <div class="grid grid-cols-2 gap-1.5">
-                        <button onclick="sendQuickChat('ขอบคุณสำหรับเกมที่ดี!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1.5 px-2 rounded text-left">🤝 ขอบคุณ!</button>
-                        <button onclick="sendQuickChat('เดินได้ดีมาก!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1.5 px-2 rounded text-left">👏 เดินดีมาก!</button>
-                        <button onclick="sendQuickChat('ตึงมือจริงๆ')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1.5 px-2 rounded text-left">⚡ ตึงมือ!</button>
-                        <button onclick="sendQuickChat('ดีมากเลย!')" class="bg-zinc-950 hover:bg-zinc-800 text-[10px] py-1.5 px-2 rounded text-left">🔥 เก่งมาก!</button>
+                <!-- Chat Board -->
+                <div id="multiplayer-chat-box" class="hidden bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex-1 flex flex-col min-h-0">
+                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-comments"></i> ห้องสนทนา
+                    </p>
+                    <div id="chat-messages" class="flex-1 overflow-y-auto space-y-1.5 mb-2 pr-1" style="max-height:140px; min-height:60px">
+                        <p class="text-[11px] text-zinc-600 italic">เริ่มพูดคุยกับคู่ต่อสู้ได้เลย...</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1 mb-2">
+                        <button onclick="sendQuickChat('ขอบคุณสำหรับเกมที่ดี!')" class="bg-zinc-950 hover:bg-zinc-800 text-[9px] py-1 px-1.5 rounded text-left truncate">🤝 ขอบคุณ!</button>
+                        <button onclick="sendQuickChat('เดินได้ดีมาก!')" class="bg-zinc-950 hover:bg-zinc-800 text-[9px] py-1 px-1.5 rounded text-left truncate">👏 เดินดีมาก!</button>
+                        <button onclick="sendQuickChat('ตึงมือจริงๆ')" class="bg-zinc-950 hover:bg-zinc-800 text-[9px] py-1 px-1.5 rounded text-left truncate">⚡ ตึงมือ!</button>
+                        <button onclick="sendQuickChat('ดีมากเลย!')" class="bg-zinc-950 hover:bg-zinc-800 text-[9px] py-1 px-1.5 rounded text-left truncate">🔥 เก่งมาก!</button>
+                    </div>
+                    <div class="flex gap-1.5">
+                        <input id="chat-input" type="text" maxlength="100" placeholder="พิมพ์ข้อความ..." class="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-[11px] text-zinc-200 focus:outline-none focus:border-red-500" onkeydown="if(event.key==='Enter') sendChatInput()">
+                        <button onclick="sendChatInput()" class="bg-red-600 hover:bg-red-500 text-white rounded-lg px-3 text-xs transition">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -840,7 +857,7 @@
         // *** วาง Google Apps Script Web App URL ตรงนี้ ***
         // URL เดียวใช้ทั้ง Auth + Leaderboard + Rooms
         // =============================================
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwqlgPl8Fdr2X9Bjp578d_lmSWrFSe9LzAI4QezgGgTkeWA7Nbt10YcQ0-SxPud87TOnw/exec';
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbweHuRA3XJY64aE4f3rSE-b07a0HZNHrVn6ODSRlEMgArE19sUE_f-3sRoahZsWWJM48Q/exec';
         // ตัวอย่าง: 'https://script.google.com/macros/s/AKfycbz.../exec'
 
         function gasReady() {
@@ -1279,6 +1296,7 @@
 
         async function pollRoomState() {
             if (appState.currentGameMode !== 'ONLINE' || !appState.currentRoomId) { stopRoomPolling(); return; }
+            pollChatMessages();
             try {
                 const res = await gasCall({ action: 'syncRoom', roomId: appState.currentRoomId });
                 if (!res.success || !res.room) return;
@@ -1307,6 +1325,7 @@
                     appState.validMoves = [];
                     renderBoardGrid();
                     updateTurnIndicator();
+                    updateCheckWarning();
                     if (room.lastMove) {
                         const lm = room.lastMove;
                         const moverClan = lm.clan === 'red' ? 'แดง' : 'ดำ';
@@ -1406,6 +1425,7 @@
         // ตั้งค่าหน้าจอเกมสำหรับผู้เข้าร่วม (ไม่ reset board เพราะเซ็ตไว้แล้ว)
         function setupGameOnline(pName, oppName, board) {
             showScreen('screen-game');
+            document.getElementById('check-warning').classList.add('hidden');
             appState.moveHistory = [];
             appState.lastMove = null;
             document.getElementById('move-history').innerHTML = '<span class="text-zinc-600">—</span>';
@@ -1426,6 +1446,8 @@
             const badge = document.getElementById('game-room-id-badge');
             badge.textContent = `ONLINE | ห้อง: ${appState.currentRoomId}`;
             document.getElementById('multiplayer-chat-box').classList.remove('hidden');
+            document.getElementById('chat-messages').innerHTML = '<p class="text-[11px] text-zinc-600 italic">เริ่มพูดคุยกับคู่ต่อสู้ได้เลย...</p>';
+            appState.lastChatCheck = new Date().toISOString();
 
             appState.currentTurn = CLANS.RED;
             appState.selectedSquare = null;
@@ -1499,6 +1521,7 @@
         // --- GAME LOGIC & BOARD SYSTEM ---
         function setupGame(pName, oppName) {
             showScreen('screen-game');
+            document.getElementById('check-warning').classList.add('hidden');
             appState.moveHistory = [];
             appState.lastMove = null;
             document.getElementById('move-history').innerHTML = '<span class="text-zinc-600">—</span>';
@@ -1519,7 +1542,8 @@
             document.getElementById('opponent-clan-label').textContent = playerIsRed ? 'กองทัพสีดำ' : 'กองทัพสีแดง';
 
             document.getElementById('game-room-id-badge').textContent = 'โหมด: AI';
-            document.getElementById('multiplayer-chat-box').classList.add('hidden');
+            document.getElementById('multiplayer-chat-box').classList.remove('hidden');
+            document.getElementById('chat-messages').innerHTML = '<p class="text-[11px] text-zinc-600 italic">เริ่มพูดคุยกับคู่ต่อสู้ได้เลย...</p>';
 
             initializeBoardState();
             appState.currentTurn = CLANS.RED;
@@ -1765,6 +1789,7 @@
 
             renderBoardGrid();
             updateTurnIndicator();
+            updateCheckWarning();
 
             if (isCheckmate) {
                 if (appState.currentGameMode === 'ONLINE') {
@@ -1887,6 +1912,55 @@
         }
 
         // --- CORE VALID CHESS MOVE COMPUTATIONS ---
+        // --- ตรวจสอบว่าขุนของฝ่ายใดถูกโจมตีอยู่หรือไม่ ---
+        function findKingPosition(clan) {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const p = appState.board[r][c];
+                    if (p && p.type === PIECE_TYPES.KING && p.clan === clan) return { row: r, col: c };
+                }
+            }
+            return null;
+        }
+
+        function isKingInCheck(clan) {
+            const kingPos = findKingPosition(clan);
+            if (!kingPos) return false;
+            const enemyClan = clan === CLANS.RED ? CLANS.BLACK : CLANS.RED;
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const p = appState.board[r][c];
+                    if (p && p.clan === enemyClan) {
+                        const moves = calculateValidMoves(r, c);
+                        if (moves.some(m => m.row === kingPos.row && m.col === kingPos.col)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function updateCheckWarning() {
+            const banner = document.getElementById('check-warning');
+            const text   = document.getElementById('check-warning-text');
+            if (!banner) return;
+
+            const myClan = appState.onlineRole === 'black' ? CLANS.BLACK : CLANS.RED;
+            const oppClan = myClan === CLANS.RED ? CLANS.BLACK : CLANS.RED;
+
+            if (isKingInCheck(myClan)) {
+                text.textContent = "⚠️ ขุนของคุณถูกโจมตี! รีบป้องกันด่วน!";
+                banner.classList.remove('hidden');
+            } else if (isKingInCheck(oppClan)) {
+                text.textContent = "🔥 ขุนของฝ่ายตรงข้ามถูกโจมตีอยู่!";
+                banner.classList.remove('hidden');
+                banner.classList.remove('animate-pulse');
+            } else {
+                banner.classList.add('hidden');
+                banner.classList.add('animate-pulse');
+            }
+        }
+
         function calculateValidMoves(row, col) {
             const piece = appState.board[row][col];
             if (!piece) return [];
@@ -2067,19 +2141,59 @@
         }
 
         // --- CHAT & BUTTON COMMANDS (ONLINE) ---
-        function sendQuickChat(message) {
-            addGameLog(`💬 คุณ: "${message}"`);
-            if (appState.currentGameMode === 'ONLINE') {
-                // หมายเหตุ: ระบบแชทจริงต้องใช้ตาราง Messages เพิ่มเติมใน GAS
-                // เวอร์ชันนี้แสดงข้อความของตัวเองในบันทึกเหตุการณ์เท่านั้น
-            } else {
+        // --- CHAT BOARD ---
+        function renderChatMessage(sender, text, isMe) {
+            const box = document.getElementById('chat-messages');
+            // ลบ placeholder ข้อความแรก
+            const placeholder = box.querySelector('.italic');
+            if (placeholder) placeholder.remove();
+
+            const bubble = document.createElement('div');
+            bubble.className = `text-[11px] rounded-lg px-2.5 py-1.5 max-w-[90%] ${isMe ? 'bg-red-900/40 text-red-200 ml-auto' : 'bg-zinc-800 text-zinc-300'}`;
+            bubble.innerHTML = `<span class="font-bold ${isMe ? 'text-red-400' : 'text-zinc-400'}">${escapeHtml(sender)}:</span> ${escapeHtml(text)}`;
+            box.appendChild(bubble);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function sendChatInput() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            sendQuickChat(text);
+        }
+
+        async function sendQuickChat(message) {
+            renderChatMessage(appState.playerName || 'คุณ', message, true);
+
+            if (appState.currentGameMode === 'ONLINE' && gasReady() && appState.currentRoomId) {
+                try {
+                    await gasCall({ action: 'sendMessage', roomId: appState.currentRoomId, sender: appState.playerName, text: message });
+                    appState.lastChatCheck = new Date().toISOString();
+                } catch(e) { console.error('sendMessage error:', e); }
+            } else if (appState.currentGameMode === 'AI') {
                 setTimeout(() => {
                     const responses = ["ยอดเยี่ยมมาก!", "เป็นคำแนะนำที่เยี่ยม!", "ระวังตัวไว้ด้วยล่ะ!", "สนามรบตึงมือจริง!"];
                     const reply = responses[Math.floor(Math.random() * responses.length)];
                     const oppName = document.getElementById('opponent-name-text').textContent;
-                    addGameLog(`💬 ${oppName}: "${reply}"`);
-                }, 1500);
+                    renderChatMessage(oppName, reply, false);
+                }, 1200);
             }
+        }
+
+        async function pollChatMessages() {
+            if (appState.currentGameMode !== 'ONLINE' || !appState.currentRoomId || !gasReady()) return;
+            try {
+                const res = await gasCall({ action: 'getMessages', roomId: appState.currentRoomId, since: appState.lastChatCheck || null });
+                if (res.success && res.messages && res.messages.length > 0) {
+                    res.messages.forEach(m => {
+                        if (m.sender !== appState.playerName) {
+                            renderChatMessage(m.sender, m.text, false);
+                        }
+                    });
+                    appState.lastChatCheck = new Date().toISOString();
+                }
+            } catch(e) { /* เงียบไว้ ไม่รบกวนผู้ใช้ */ }
         }
 
         async function requestDraw() {
