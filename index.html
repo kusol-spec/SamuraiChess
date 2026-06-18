@@ -2026,8 +2026,11 @@
                     });
                     break;
 
-                case PIECE_TYPES.BISHOP: // โคน — เดินทะแยงไม่จำกัดช่อง
-                    addSlidingMoves(moves, row, col, [[-1,-1],[-1,1],[1,-1],[1,1]], clan);
+                case PIECE_TYPES.BISHOP: // โคน — เดินทะแยง 1 ช่องเท่านั้น (4 ทิศ)
+                    [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc]) => {
+                        const r = row+dr, c = col+dc;
+                        if (canLand(r, c)) moves.push({ row: r, col: c });
+                    });
                     break;
 
                 case PIECE_TYPES.QUEEN: // เม็ด — เดินทะแยง 1 ช่อง + ข้างหน้า 1 ช่อง
