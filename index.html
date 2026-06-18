@@ -412,7 +412,7 @@
                             <span class="text-xl text-red-400">♕</span>
                             <div>
                                 <p class="font-bold text-zinc-200">เม็ด</p>
-                                <p>ทะแยง 1 + หน้า 1</p>
+                                <p>ทะแยง 1 ช่อง (4 ทิศ)</p>
                             </div>
                         </div>
                         <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
@@ -426,7 +426,7 @@
                             <span class="text-xl text-blue-400">♗</span>
                             <div>
                                 <p class="font-bold text-zinc-200">โคน</p>
-                                <p>ทะแยงไม่จำกัด</p>
+                                <p>ทะแยง 1 + หน้า 1</p>
                             </div>
                         </div>
                         <div class="bg-zinc-950 p-2 rounded-lg flex items-center gap-2">
@@ -440,7 +440,7 @@
                             <span class="text-xl text-zinc-400">♙</span>
                             <div>
                                 <p class="font-bold text-zinc-200">เบี้ย / หน้า</p>
-                                <p>หน้า 1, ข้ามฝั่ง→หน้า</p>
+                                <p>หน้า 1, ข้ามฝั่ง→ทะแยงแบบเม็ด</p>
                             </div>
                         </div>
                     </div>
@@ -1982,18 +1982,12 @@
 
                 case PIECE_TYPES.PAWN:
                     if (piece.promoted) {
-                        // เบี้ยหน้า: เดินเหมือนเม็ด (ทะแยง 4 ทิศ + หน้า 1)
-                        // แต่ไม่เดินถอยหลัง
-                        const queenLikeDirs = [
-                            [dir,  0],  // หน้า
-                            [dir, -1],  // หน้าซ้าย
-                            [dir,  1],  // หน้าขวา
-                            [0,  -1],   // ซ้าย
-                            [0,   1],   // ขวา
-                            [-dir,-1],  // ทะแยงหลังซ้าย
-                            [-dir, 1],  // ทะแยงหลังขวา
+                        // เบี้ยหน้า (เบี้ยหงาย): เดินเหมือนเม็ด — ทะแยง 1 ช่อง รอบทิศ (4 ทิศ) เท่านั้น
+                        const metLikeDirs = [
+                            [-1, -1], [-1, 1],
+                            [ 1, -1], [ 1, 1],
                         ];
-                        queenLikeDirs.forEach(([dr, dc]) => {
+                        metLikeDirs.forEach(([dr, dc]) => {
                             const r = row + dr, c = col + dc;
                             if (canLand(r, c)) moves.push({ row: r, col: c });
                         });
@@ -2026,15 +2020,15 @@
                     });
                     break;
 
-                case PIECE_TYPES.BISHOP: // โคน — เดินทะแยง 1 ช่องเท่านั้น (4 ทิศ)
-                    [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc]) => {
+                case PIECE_TYPES.BISHOP: // โคน — เดินทะแยง 1 ช่อง (4 ทิศ) หรือเดินตรงไปข้างหน้า 1 ช่อง (ถอยหลังตรงไม่ได้)
+                    [[-1,-1],[-1,1],[1,-1],[1,1],[dir,0]].forEach(([dr,dc]) => {
                         const r = row+dr, c = col+dc;
                         if (canLand(r, c)) moves.push({ row: r, col: c });
                     });
                     break;
 
-                case PIECE_TYPES.QUEEN: // เม็ด — เดินทะแยง 1 ช่อง + ข้างหน้า 1 ช่อง
-                    [[dir,0],[dir,-1],[dir,1],[-dir,-1],[-dir,1],[0,-1],[0,1]].forEach(([dr,dc]) => {
+                case PIECE_TYPES.QUEEN: // เม็ด — เดินทะแยง 1 ช่องเท่านั้น (4 ทิศ)
+                    [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc]) => {
                         const r = row+dr, c = col+dc;
                         if (canLand(r, c)) moves.push({ row: r, col: c });
                     });
